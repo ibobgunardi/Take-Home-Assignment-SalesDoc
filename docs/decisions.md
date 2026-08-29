@@ -446,6 +446,15 @@ connects is the typical run** — do not treat a single-connect demo as a defect
 (R-39b). If a demo must show two connects, use more leads rather than inflating
 the connect rate.
 
+> **Correction, measured during implementation.** The parameters below are as
+> decided and are implemented unchanged, but the "60-90 seconds" estimate
+> further down was wrong. A real 5-lead run against the seeded simulator
+> completed in **23.2 s** (rings 2.9/3.4/4.2/3.7/5.0 s, one 11.1 s conversation).
+> The estimate assumed sequential rounds; in practice the two lines ring in
+> parallel, so 5 leads is about 2.5 rounds and only a connected call adds talk
+> time. Read the durations below as correct and the wall-clock estimate as
+> roughly a third of what it says.
+
 **Why reasonable.** These make a 5–6 lead session run roughly 60–90 seconds:
 long enough for a reviewer to watch a line ring,
 win, cancel its partner, talk, and hand back to the queue; short enough to sit

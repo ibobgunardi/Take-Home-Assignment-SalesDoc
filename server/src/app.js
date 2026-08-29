@@ -3,6 +3,9 @@ import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
 import express from 'express';
 import cors from 'cors';
+import { leadsRouter } from './routes/leads.js';
+import { sessionsRouter } from './routes/sessions.js';
+import { mockCrmRouter } from './routes/mock-crm.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CLIENT_DIST = path.resolve(__dirname, '../../client/dist');
@@ -28,12 +31,17 @@ export function createApp() {
     res.json({ status: 'ok', service: 'multiline-dialer', time: new Date().toISOString() });
   });
 
+  // ---- API routers, before anything static ----
+  app.use(leadsRouter);
+  app.use(sessionsRouter);
+  app.use(mockCrmRouter);
+
   // ---- static client bundle + SPA fallback (must stay last) ----
   if (fs.existsSync(CLIENT_DIST)) {
     app.use(express.static(CLIENT_DIST));
     app.get('*', (req, res, next) => {
-      // Never hijack an API path: if it got here it did not match a router,
-      // but an unmatched /mock-crm/... should still 404 as JSON, not as HTML.
+      // Never hijack an API path: if it reached here it matched no router, but
+      // an unmatched /mock-crm/... must still 404 as JSON, not as the SPA shell.
       if (isApiPath(req.path)) return next();
       res.sendFile(path.join(CLIENT_DIST, 'index.html'));
     });
@@ -43,10 +51,15 @@ export function createApp() {
     res.status(404).json({ error: 'Not found', path: req.path });
   });
 
+  // Domain errors carry their own status (400/404/409); anything else is a bug
+  // and becomes a 500 rather than an unhandled throw (R-68).
   // eslint-disable-next-line no-unused-vars -- Express needs the 4-arg shape
   app.use((err, req, res, next) => {
+    if (err?.status && err.status < 500) {
+      return res.status(err.status).json({ error: err.message });
+    }
     console.error('[unhandled]', err);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   });
 
   return app;

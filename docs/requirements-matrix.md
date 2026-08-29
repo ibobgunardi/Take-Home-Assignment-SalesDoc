@@ -47,7 +47,7 @@
 | R-03 | `Call` has `id, leadId, sessionId, status, startedAt, endedAt, providerCallId` | T1-P1 | `models/call` | unit: shape on create | session payload shows fields | Tested |
 | R-04 | `Call.status` is exactly `CONNECTED \| NO_ANSWER \| BUSY \| VOICEMAIL \| CANCELED_BY_DIALER` — no invented values | T1-P1, D-03 | `models/call` | unit: enum has exactly 5 values | grep for stray statuses | Tested |
 | R-05 | Call `phase` (`DIALING\|LIVE\|ENDED`) is separate from `status`; `status`+`endedAt` set atomically on ENDED only | D-03 | `services/dialer` | unit: no call has status without endedAt; no `DIALING`/`LIVE` in `Call_Status` | UI shows Dialing / Connected-live | Tested |
-| R-06 | `providerCallId` populated as a string by the simulated provider | T1-P1 | `services/simulator` | unit: non-empty string, unique | session payload | Tested |
+| R-06 | `providerCallId` populated as a string by the simulated provider | T1-P1 | `services/simulator` | unit: non-empty string, unique | session payload | Verified |
 | R-07 | `DialerSession` has `id, agentId, leadQueue, activeCallIds, winnerCallId, status, metrics` | T1-P1 | `models/session` | unit: shape on create | `GET /sessions/:id` | Tested |
 | R-08 | `concurrency` fixed to 2 and not user-configurable | T1-P1 | `models/session` | unit: constant is 2 | no API accepts concurrency | Tested |
 | R-09 | `session.status` is exactly `RUNNING \| STOPPED` | T1-P1, D-02 | `models/session` | unit: enum has exactly 2 values | — | Tested |
@@ -78,11 +78,11 @@
 | R-34 | Metrics map per D-04 and satisfy `connected+failed+canceled == attempted` at rest | D-04 | `services/dialer` | unit: invariant asserted after each scenario | UI metrics vs call list | Tested |
 | R-35 | Call simulation is deterministic and injectable; no `Math.random`/bare `setTimeout` in domain logic | D-06 | `services/simulator` | scripted simulator used by all dialer tests | `grep -rn "Math.random"` in domain | Tested |
 | R-36 | Created-but-unstarted session is `STOPPED` with `startedAt === null`; start is legal only then | D-14 | `services/dialer` | unit: 3 lifecycle states distinguishable | — | Tested |
-| R-37 | Start on a **finished** session → `409`; there is no restart | D-14 | `routes/sessions` | unit | UI offers "New session", not Start | Todo |
+| R-37 | Start on a **finished** session → `409`; there is no restart | D-14 | `routes/sessions` | unit | UI offers "New session", not Start | Verified |
 | R-38 | `agentId` supplied by a seeded hardcoded demo agent (`agent-1`); server defaults it when absent | D-14 | `seed`, `routes/sessions` | unit: default applied | `POST /sessions` without agentId works | Tested |
 | R-39 | One `setInterval` per `RUNNING` session at `TICK_MS = 250` calling only `advance()`; cleared on stop; no per-call timers | D-16 | `services/dialer` | unit: interval cleared on stop | no timer leak after session ends | Tested |
 | R-39a | Tests drive `advance()` directly with a fake clock; the interval is never started in tests | D-16 | tests | the suite itself | — | Tested |
-| R-39b | Simulator uses the D-17 ring/talk durations and outcome mix | D-17 | `services/simulator` | unit: draws within bounds | a 5-lead demo runs ~60–90s and reaches `STOPPED`; **1 connect is a normal run, not a defect** | Tested |
+| R-39b | Simulator uses the D-17 ring/talk durations and outcome mix | D-17 | `services/simulator` | unit: draws within bounds | a 5-lead demo reaches `STOPPED` (measured: 23.2s); **1 connect is a normal run, not a defect** | Tested |
 
 ### 1.3 CRM integration — **idempotency is critical**
 
@@ -104,16 +104,16 @@
 
 | ID | Requirement | Source | Implementation Area | Test | Verification | Status |
 | -- | ----------- | ------ | ------------------- | ---- | ------------ | ------ |
-| R-60 | `GET /mock-crm/contacts` (**specified verbatim**) | T1-P2 | `routes/mock-crm` | integration test | curl / browser | Todo |
-| R-61 | `GET /mock-crm/activities` (**specified verbatim**) | T1-P2 | `routes/mock-crm` | integration test | curl / browser | Todo |
-| R-62 | `GET /leads/:id/crm-activities` (**specified verbatim**) | T1-P2 | `routes/leads` | integration test | curl / browser | Todo |
-| R-63 | `GET /leads` | D-08 | `routes/leads` | integration test | Screen 1 loads | Todo |
-| R-64 | `POST /sessions` | D-08 | `routes/sessions` | integration test | Screen 1 creates | Todo |
-| R-65 | `POST /sessions/:id/start` | D-08 | `routes/sessions` | integration test | Start button | Todo |
-| R-66 | `POST /sessions/:id/stop` | D-08 | `routes/sessions` | integration test | Stop button | Todo |
-| R-67 | `GET /sessions/:id` returns session + lines + metrics + winner + per-call CRM status in one response | D-08 | `routes/sessions` | integration test | polling payload | Todo |
-| R-68 | Unknown session/lead id → `404`, not a 500 or a crash | D-08 | `routes/*` | integration test | curl a bogus id | Todo |
-| R-69 | CORS configured so the Vite dev client can reach the API | D-08 | `server` | — | client loads without CORS error | Impl |
+| R-60 | `GET /mock-crm/contacts` (**specified verbatim**) | T1-P2 | `routes/mock-crm` | integration test | curl / browser | Verified |
+| R-61 | `GET /mock-crm/activities` (**specified verbatim**) | T1-P2 | `routes/mock-crm` | integration test | curl / browser | Verified |
+| R-62 | `GET /leads/:id/crm-activities` (**specified verbatim**) | T1-P2 | `routes/leads` | integration test | curl / browser | Verified |
+| R-63 | `GET /leads` | D-08 | `routes/leads` | integration test | Screen 1 loads | Verified |
+| R-64 | `POST /sessions` | D-08 | `routes/sessions` | integration test | Screen 1 creates | Verified |
+| R-65 | `POST /sessions/:id/start` | D-08 | `routes/sessions` | integration test | Start button | Verified |
+| R-66 | `POST /sessions/:id/stop` | D-08 | `routes/sessions` | integration test | Stop button | Verified |
+| R-67 | `GET /sessions/:id` returns session + lines + metrics + winner + per-call CRM status in one response | D-08 | `routes/sessions` | integration test | polling payload | Verified |
+| R-68 | Unknown session/lead id → `404`, not a 500 or a crash | D-08 | `routes/*` | integration test | curl a bogus id | Verified |
+| R-69 | CORS configured so the Vite dev client can reach the API | D-08 | `server` | — | client loads without CORS error | Tested |
 
 ### 1.5 Frontend
 
@@ -148,7 +148,7 @@
 | R-104 | `NOTES.md`: what you would do next | T1-Sub | `NOTES.md` | — | reviewed | Todo |
 | R-105 | `NOTES.md`: how AI tools were used | T1-Sub | `NOTES.md` | — | reviewed | Todo |
 | R-106 | `NOTES.md`: **what you verified** — factual, labelled, no fabrication | T1-Sub | `NOTES.md` | — | every claim traceable to a run | Todo |
-| R-107 | Test suite runs green via a documented command | D-06 | `package.json` | — | **actually run, output observed** | Todo |
+| R-107 | Test suite runs green via a documented command | D-06 | `package.json` | — | **actually run, output observed** | Verified |
 | R-108 | Deployed to a free host; URL reachable | T1-Sub, D-15 | deployment | — | **open the URL and use it** | Verified |
 | R-108a | **Walking skeleton deployed on day one**, before feature work | D-15 | deployment | — | URL served something on day 1 | Verified |
 | R-108b | Single host serves API + built React bundle from one process | D-15 | deployment | — | one URL, no CORS in prod | Verified |

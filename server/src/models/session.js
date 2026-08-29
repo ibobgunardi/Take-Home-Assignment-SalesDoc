@@ -27,6 +27,10 @@ export function createSession({ agentId, leadIds, now }) {
     leadQueue: [...leadIds],
     concurrency: CONCURRENCY,
     activeCallIds: [],
+    // Which call is holding each of the 2 lines. Presentation only: it keeps a
+    // card in the same slot across polls instead of sliding left when the other
+    // line frees. activeCallIds stays the authority for INVARIANT 1.
+    lineSlots: [null, null],
     winnerCallId: null,
     status: SESSION_STATUS.STOPPED,
     metrics: { attempted: 0, connected: 0, failed: 0, canceled: 0 },

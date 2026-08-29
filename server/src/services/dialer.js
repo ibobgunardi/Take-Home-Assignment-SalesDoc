@@ -128,6 +128,7 @@ export function stopSession(session) {
     }
   }
   session.activeCallIds = [];
+  session.lineSlots = [null, null];
 
   stopTicking(session.id);
   return session;
@@ -199,10 +200,12 @@ export function advance(session) {
   }
 
   // 6. Release ended calls from the lines they were holding.
-  session.activeCallIds = session.activeCallIds.filter((id) => {
-    const call = callStore.get(id);
-    return call && isInFlight(call);
-  });
+  const stillInFlight = (id) => {
+    const call = id === null ? null : callStore.get(id);
+    return Boolean(call && isInFlight(call));
+  };
+  session.activeCallIds = session.activeCallIds.filter(stillInFlight);
+  session.lineSlots = session.lineSlots.map((id) => (stillInFlight(id) ? id : null));
 
   // 7. Promote. The ceiling is the loop condition, so it cannot be bypassed.
   //    The LIVE gate (not a winnerCallId gate) is what makes dialing resume
@@ -293,6 +296,7 @@ function promoteNextLead(session, now) {
   plans.set(call.id, plan);
   callStore.put(call);
   session.activeCallIds.push(call.id);
+  session.lineSlots[session.lineSlots.indexOf(null)] = call.id;
   session.callIds.push(call.id);
   session.metrics.attempted += 1;
 

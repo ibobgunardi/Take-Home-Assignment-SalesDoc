@@ -33,6 +33,15 @@ export function assertSessionLegal(session, label = '') {
     );
   });
 
+  // lineSlots is presentation-only, but it is maintained alongside
+  // activeCallIds in the same synchronous steps, so any drift between them is
+  // a bug in advance() - catch it here rather than as a UI oddity.
+  expect(session.lineSlots.length, `always exactly 2 line slots${where}`).toBe(CONCURRENCY);
+  expect(
+    [...session.lineSlots].filter((id) => id !== null).sort(),
+    `lineSlots agrees with activeCallIds${where}`,
+  ).toEqual([...session.activeCallIds].sort());
+
   // phase and status must agree, on every call in the session - not just the
   // active ones. A call with a status but no endedAt (or vice versa) means the
   // terminal transition was not atomic (D-03).
