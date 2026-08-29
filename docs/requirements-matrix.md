@@ -119,23 +119,23 @@
 
 | ID | Requirement | Source | Implementation Area | Test | Verification | Status |
 | -- | ----------- | ------ | ------------------- | ---- | ------------ | ------ |
-| R-80 | Screen 1 displays the seeded leads list | T1-P3 | `LeadsScreen` | component test | browser | Todo |
-| R-81 | Leads selectable via **checkboxes** | T1-P3 | `LeadsScreen` | component test | browser | Todo |
-| R-82 | "Create Dialer Session" control | T1-P3 | `LeadsScreen` | component test | browser | Todo |
-| R-83 | "Start" control | T1-P3 | `LeadsScreen` / `SessionScreen` | component test | browser | Todo |
-| R-84 | Screen 2 shows **2** "line" call cards | T1-P3 | `SessionScreen` | component test | browser | Todo |
-| R-85 | Each line card shows lead **name, phone, status** | T1-P3 | `LineCard` | component test | browser | Todo |
-| R-86 | Session metrics displayed | T1-P3 | `SessionScreen` | component test | browser | Todo |
-| R-87 | Winner call displayed when connected | T1-P3 | `SessionScreen` | component test | browser | Todo |
-| R-88 | CRM activity creation status shown **per call/lead** | T1-P3 | `SessionScreen` | component test | browser | Todo |
-| R-89 | Backend polled every **1–2 seconds** while a session is live | T1-P3 | `useSessionPolling` | test: interval within 1000–2000ms | observe network tab | Todo |
-| R-90 | Polling stops when the session is `STOPPED` (no runaway requests) | `.claude/rules/frontend.md` | `useSessionPolling` | test: interval cleared | network tab goes quiet | Todo |
-| R-91 | Backend is the source of truth; UI renders server state, never simulates calls locally | `.claude/rules/frontend.md` | `SessionScreen` | — | no dialer logic in client | Todo |
-| R-92 | Loading / empty / error states are handled (no blank screen, no crash on a failed poll) | `.claude/rules/frontend.md` | `SessionScreen` | component test | stop the API mid-session | Todo |
-| R-93 | Poll receiving `404` (cold-started host lost the session) returns to Screen 1 with "session expired", never a crash or blank screen | D-15 | `SessionScreen` | component test: 404 -> Screen 1 | idle the deployed app, then poll | Todo |
-| R-94 | Finished session offers **"New session"** (returns to Screen 1), not a re-enabled Start — the UI counterpart of R-37 | D-14 | `SessionScreen` | component test | click through after a session ends | Todo |
-| R-95 | Completed-calls list on Screen 2 so queue advancement is observable | `.claude/rules/frontend.md` | `SessionScreen` | component test | watch the queue drain | Todo |
-| R-96 | The second line stays visible and labelled while a winner is `LIVE` (idle, not blank) so the 2-line design stays legible | `.claude/rules/frontend.md` | `SessionScreen` | component test | observe during a conversation | Todo |
+| R-80 | Screen 1 displays the seeded leads list | T1-P3 | `LeadsScreen` | component test | browser | Verified |
+| R-81 | Leads selectable via **checkboxes** | T1-P3 | `LeadsScreen` | component test | browser | Verified |
+| R-82 | "Create Dialer Session" control | T1-P3 | `LeadsScreen` | component test | browser | Verified |
+| R-83 | "Start" control | T1-P3 | `LeadsScreen` / `SessionScreen` | component test | browser | Verified |
+| R-84 | Screen 2 shows **2** "line" call cards | T1-P3 | `SessionScreen` | component test | browser | Verified |
+| R-85 | Each line card shows lead **name, phone, status** | T1-P3 | `LineCard` | component test | browser | Verified |
+| R-86 | Session metrics displayed | T1-P3 | `SessionScreen` | component test | browser | Verified |
+| R-87 | Winner call displayed when connected | T1-P3 | `SessionScreen` | component test | browser | Verified |
+| R-88 | CRM activity creation status shown **per call/lead** | T1-P3 | `SessionScreen` | component test | browser | Verified |
+| R-89 | Backend polled every **1–2 seconds** while a session is live | T1-P3 | `useSessionPolling` | test: interval within 1000–2000ms | observe network tab | Tested |
+| R-90 | Polling stops when the session is `STOPPED` (no runaway requests) | `.claude/rules/frontend.md` | `useSessionPolling` | test: interval cleared | network tab goes quiet | Tested |
+| R-91 | Backend is the source of truth; UI renders server state, never simulates calls locally | `.claude/rules/frontend.md` | `SessionScreen` | — | no dialer logic in client | Tested |
+| R-92 | Loading / empty / error states are handled (no blank screen, no crash on a failed poll) | `.claude/rules/frontend.md` | `SessionScreen` | component test | stop the API mid-session | Tested |
+| R-93 | Poll receiving `404` (cold-started host lost the session) returns to Screen 1 with "session expired", never a crash or blank screen | D-15 | `SessionScreen` | component test: 404 -> Screen 1 | idle the deployed app, then poll | Tested |
+| R-94 | Finished session offers **"New session"** (returns to Screen 1), not a re-enabled Start — the UI counterpart of R-37 | D-14 | `SessionScreen` | component test | click through after a session ends | Tested |
+| R-95 | Completed-calls list on Screen 2 so queue advancement is observable | `.claude/rules/frontend.md` | `SessionScreen` | component test | watch the queue drain | Verified |
+| R-96 | The second line stays visible and labelled while a winner is `LIVE` (idle, not blank) so the 2-line design stays legible | `.claude/rules/frontend.md` | `SessionScreen` | component test | observe during a conversation | Verified |
 
 ### 1.6 Setup, documentation, submission
 

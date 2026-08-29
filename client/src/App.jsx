@@ -1,34 +1,48 @@
-import { useEffect, useState } from 'react';
-import { apiGet } from './api.js';
+import { useState } from 'react';
+import LeadsScreen from './LeadsScreen.jsx';
+import SessionScreen from './SessionScreen.jsx';
 
-// Walking skeleton (slice 1/2): proves the deployed process serves both the
-// bundle and the API from one origin. Replaced by Screen 1 / Screen 2.
+/**
+ * Two screens, swapped by state. A router would add a dependency for no
+ * requirement - the spec asks for two screens, not for URLs.
+ */
 export default function App() {
-  const [health, setHealth] = useState(null);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    apiGet('/health')
-      .then(setHealth)
-      .catch((err) => setError(err.message));
-  }, []);
+  const [sessionId, setSessionId] = useState(null);
+  const [notice, setNotice] = useState(null);
 
   return (
     <main className="app">
       <header className="app-header">
         <h1>Multi-Line Dialer</h1>
-        <p className="subtitle">2-line power dialer with a mock CRM</p>
+        <p className="subtitle">
+          Two lines, a shared queue, and a mock CRM that records every call outcome.
+        </p>
       </header>
-      <section className="panel">
-        <h2>API connection</h2>
-        {!health && !error && <p className="muted">Checking…</p>}
-        {error && <p className="error">Could not reach the API: {error}</p>}
-        {health && (
-          <p className="ok">
-            API reachable — <code>{health.status}</code> at {health.time}
-          </p>
-        )}
-      </section>
+
+      {sessionId ? (
+        <SessionScreen
+          sessionId={sessionId}
+          // R-93: the server restarted and lost this in-memory session.
+          onExpired={() => {
+            setSessionId(null);
+            setNotice(
+              'That session expired - the server restarted and its state is held in memory. Create a new session to continue.',
+            );
+          }}
+          onNewSession={() => {
+            setSessionId(null);
+            setNotice(null);
+          }}
+        />
+      ) : (
+        <LeadsScreen
+          notice={notice}
+          onStarted={(id) => {
+            setNotice(null);
+            setSessionId(id);
+          }}
+        />
+      )}
     </main>
   );
 }
