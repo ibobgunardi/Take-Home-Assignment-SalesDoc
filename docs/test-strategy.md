@@ -204,6 +204,8 @@ view leads
 Then, with the session finished:
 
 ```bash
+# On Windows/PowerShell use `curl.exe` - bare `curl` is an alias for
+# Invoke-WebRequest, which takes different flags and returns an object.
 curl .../mock-crm/contacts        # one contact per attempted lead, no duplicates
 curl .../mock-crm/activities      # count == number of calls created
 curl .../leads/<id>/crm-activities
