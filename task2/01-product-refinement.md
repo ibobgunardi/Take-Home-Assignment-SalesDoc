@@ -9,7 +9,7 @@
 > actually checked, or explicitly marked as an assumption. Where I could not
 > verify something in the time available, it says so. The exercise asks for
 > product judgment over exhaustive research; it also warns against presenting
-> unsupported conclusions as facts. Section 11 lists what I did **not** check.
+> unsupported conclusions as facts. Section 13 lists what I did **not** check.
 
 ---
 
@@ -74,12 +74,12 @@ wholesale. Each is sourced in Appendix A:
 **What we do not yet know, and must, before committing engineering:** whether a
 gatekeeper-to-PIC transfer survives a real PBX cleanly, and how long an AI-leg
 handoff actually takes end to end. Both are answerable in three weeks
-(§10, E1 and E2). **The recommendation is conditional on those two results.**
+(§12, E1 and E2). **The recommendation is conditional on those two results.**
 
 **The number that decides the business case is not a technology number.** It is
 `p` — the proportion of AI calls that reach a verified PIC. Every capacity
 calculation, the AI-calls-per-human ratio, and the cost per human conversation
-all follow from it, and **SalesDoc has no baseline for it today** (§9). The
+all follow from it, and **SalesDoc has no baseline for it today** (§11). The
 pilot's primary job is to measure `p`.
 
 ---
@@ -429,10 +429,207 @@ Concretely:
    The AI's response policy is to continue without echoing. Because of (1) and (2)
    there is no field for it to land in even if the model misbehaves.
 
-The acceptance test (§7, Scenario 3) is written to be *falsifiable*: deliberately
+The acceptance test (§7.3) is written to be *falsifiable*: deliberately
 volunteer a name and a mobile number during a test call, then grep the lead
 record, the briefing, the structured outcome, and any retained transcript. If any
 of them appear, the control failed.
+
+### 4.6 Company selection and two-level tailoring
+
+Everything above assumes a company arrived in the queue carrying an "approved,
+current signal". This section defines what that actually means, because a
+proposal that says "approved signal" without defining approval is circular.
+
+**Standing caveat.** SalesDoc's lead management system was not available to me
+(assumption A6). Field names below are **proposed**, not observed. What matters
+is the *shape* of the contract; the actual names come out of the E0 spike.
+
+#### 4.6.1 Which fields are authoritative, and who owns them
+
+Lead management is the system of record (requirement 11). V2 reads these and
+writes back only the last two rows.
+
+| Purpose | Field (proposed) | Authoritative owner | V2 may write? |
+| --- | --- | --- | --- |
+| Lead and company identity | `lead_id`, `company_id`, `company_name` | Lead management | **No** |
+| Eligibility | `contact_status`, `dnc_flag`, `suppression_until` | Compliance, via lead management | **No** |
+| Segment — what the AI may use | `industry`, `company_type`, `size_band`, `campaign_id`, `target_role` | Campaign manager | **No** |
+| Company context — human only | `company_notes`, `recent_events`, `account_history` | RevOps | **No** |
+| Signal | `signal_type`, `signal_value`, `signal_source`, `signal_observed_at`, `signal_approved` | RevOps + compliance | **No** |
+| Current status | `lead_status` | Shared | **Yes, bounded** — see 4.6.11 |
+| Attempt history | `attempt_outcome`, `attempted_at`, `next_action` | V2 | **Yes** |
+
+**The rule: V2 writes attempts and next actions. It never writes identity,
+segment, or signal data.** Anything else would make V2 a second source of truth
+for data the exercise puts firmly in lead management.
+
+#### 4.6.2 What qualifies as a likely-to-buy signal
+
+**Definition:** an *observable, dated, attributable* event or state that raises
+the probability this company needs what SalesDoc sells, and that a human could
+defend out loud if the PIC asked "why are you calling me?"
+
+Three tests, all required:
+
+1. **Observable** — traceable to a named source, not inferred from a model score
+   alone.
+2. **Dated** — carries the date the event occurred or was observed, not merely
+   when we ingested it.
+3. **Defensible** — referencing it in conversation reads as informed rather than
+   intrusive. This test is what keeps V2 from feeling like surveillance.
+
+**Reliability tiers.** Not every signal is strong enough to justify a call, and
+the tier drives both eligibility and contention priority (§4.3):
+
+| Tier | Character | Examples | May trigger a call? |
+| --- | --- | --- | --- |
+| **Tier 1** | Public, dated, company-attributable, high intent | Announced expansion, funding round, new market entry, relevant senior hire, published tender | **Yes, alone** |
+| **Tier 2** | Observed behaviour toward SalesDoc | Repeat visits to a product page, content download, event attendance, inbound enquiry gone cold | **Yes, alone** |
+| **Tier 3** | Contextual or inferred | Industry trend, look-alike modelling, firmographic fit, generic growth score | **No — not alone.** Requires a Tier 1 or 2 signal |
+| **Tier 4** | Stale or unattributable | Undated claims, hearsay, scraped data with no source | **Never** |
+
+**Tier 3 alone is the line between targeted calling and cold calling** — and it
+is exactly where a system like this quietly degrades under pressure to hit
+volume. Making it a hard rule rather than a guideline is deliberate.
+
+#### 4.6.3 How fresh a signal must be
+
+Per signal type, because a funding round stays relevant far longer than a page
+visit:
+
+| Signal type | Proposed window | Reasoning |
+| --- | --- | --- |
+| Funding, expansion, market entry | 90 days | Consequences unfold over a quarter |
+| Senior hire in the target function | 60 days | Buying authority is genuinely new |
+| Published tender or RFP | To the stated deadline | Self-dating |
+| Website or content behaviour | 14 days | Intent decays fast |
+| Event attendance | 30 days | |
+| Inbound enquiry gone cold | 45 days | |
+
+Outside the window: `SIGNAL_STALE`, status `AWAITING_SIGNAL_REFRESH`, no call.
+Windows are configuration, not code — and every number above is an assumption to
+be tuned from pilot data, not a finding.
+
+#### 4.6.4 Weak, stale and contradictory signals
+
+| Case | Treatment |
+| --- | --- |
+| **Weak** — Tier 3 only | Not callable. Held; a Tier 1/2 signal promotes it |
+| **Stale** — past its window | `AWAITING_SIGNAL_REFRESH`. Never silently used |
+| **Multiple valid** | Highest tier becomes the *stated* reason; the others still appear on the briefing |
+| **Contradictory** — e.g. an expansion signal alongside a redundancy announcement | **Suppress and route to a human.** Do not let a machine choose which story to tell about a company |
+| **Contradicted by a prior outcome** — an earlier attempt recorded "not in market" | Suppress for the campaign's cool-off period regardless of new signals |
+
+Precedence is explicit and logged: every queued company records which signal was
+chosen and which were set aside, so a bad call can be explained afterwards.
+
+#### 4.6.5 Who approves, and how automated selection is
+
+**Hybrid — with the human gate at the campaign level rather than the company
+level.** Per-company approval does not scale to the volumes V2 exists to produce;
+fully automated selection puts brand risk in a cron job.
+
+| Decision | Who | When |
+| --- | --- | --- |
+| A signal *type* is approved and assigned a tier | **RevOps + compliance**, jointly | Once, reviewed quarterly |
+| Freshness window per type | Campaign manager | At definition |
+| **A campaign** — segment, target role, signal types, script variants, volume ceiling | **Campaign manager**, countersigned by compliance for wording | Before launch |
+| **An individual company entering the queue** | **Automated**, if it satisfies an approved campaign's rules | Continuously |
+| A company flagged by contradiction, or a named/strategic account | **Human review queue** | Exception only |
+
+So: **humans approve the rules, the machine applies them, and exceptions come
+back to humans.** The campaign is the unit of accountability, and it carries a
+**volume ceiling** so a misconfigured rule cannot dial an entire industry
+overnight.
+
+#### 4.6.6 The two-level split, stated as a boundary
+
+| Level | May the AI use it? | Fields |
+| --- | --- | --- |
+| **Segment context** | **Yes** — requirement 6 | `industry`, `company_type`, `size_band`, `campaign_id`, `target_role` |
+| **Company context** | **No — human briefing only** | the specific signal, `recent_events`, `account_history`, prior conversations, the suggested angle |
+
+**Enforced, not documented:** the script template engine accepts only the five
+segment fields. A variant referencing a company-specific field **fails validation
+and cannot be published** (backlog B-1). That is what makes requirement 6 a
+property of the system rather than an instruction someone might forget.
+
+The one company-specific thing the AI handles is *verifying the company name* —
+which is confirmation, not tailoring.
+
+#### 4.6.7 Which opening variants are required, and who approves them
+
+Minimum viable set for the pilot: **one campaign × one industry × one size band ×
+one target role → 3–4 variants** — a standard opening, a gatekeeper-response
+variant, a voicemail-adjacent variant, and a closing script that includes the
+approved no-operator wording.
+
+Approval: the campaign manager writes; the **compliance owner approves the
+wording**; both are recorded with a timestamp. Each variant is versioned and every
+attempt records the version used, so a complaint can be traced to exact words.
+**An unapproved variant cannot reach a live call** — enforced in the publish path,
+not by process discipline.
+
+#### 4.6.8 Preventing unsupported and stale claims
+
+Four layered mechanisms, because this is the failure that damages the brand
+fastest:
+
+1. **The AI cannot make company-specific claims at all** (4.6.6) — this removes
+   the entire class from the automated phase.
+2. **Every briefing fact carries its source field and as-of date**, rendered next
+   to the claim (capability 8).
+3. **Facts past the staleness threshold are visually marked**, so an operator
+   sees "expansion announced — 94 days ago" rather than "recently announced".
+4. **Nothing without provenance renders.** A missing field shows "not available",
+   never a plausible-sounding guess.
+
+#### 4.6.9 How the suggested angle is generated and reviewed
+
+**Generated by template selection, not free generation.** The angle is chosen
+from an approved phrasing library keyed on `(signal_type × target_role)`, with
+only the signal's own dated value interpolated.
+
+**Why not have a model write one per company:** a freely generated angle is an
+unsourced claim by construction. It defeats 4.6.8 and reintroduces exactly the
+per-company cost that requirement 6 exists to avoid.
+
+**Review:** the campaign manager approves the library; operators can flag an angle
+as unhelpful directly from the briefing card, and those flags feed the quarterly
+review. The angle is always **advisory** — a suggestion to a professional, never a
+script they must read.
+
+#### 4.6.10 Sourced fact versus generated recommendation
+
+The exercise asks for this distinction explicitly. The briefing card makes it
+visible rather than leaving the operator to infer it:
+
+| On the briefing card | Kind | Rendered as |
+| --- | --- | --- |
+| Company, role, industry, size | **Sourced** — lead management | Plain, with field name |
+| The likely-to-buy signal and its date | **Sourced** — with `signal_source` | Plain, with source and as-of date |
+| What the AI established | **Observed** — structured enums from this call | Marked "from this call" |
+| Why the company was selected | **Derived** — the rule that fired | Marked "selection rule" |
+| **Suggested opening angle** | **Generated recommendation** | **Visually distinct, labelled "suggested"** |
+
+An operator must never be unable to tell which line is a fact about the company
+and which is our suggestion about how to open. Only the last row is generated,
+and it is the only row labelled as such.
+
+#### 4.6.11 What is written back, and what needs a human
+
+The full 18-exit contract is in [02-workflow-diagram.md](02-workflow-diagram.md)
+§2. The governing split:
+
+| V2 may set unattended | Requires human confirmation |
+| --- | --- |
+| `ATTEMPTED`, `AWAITING_SIGNAL_REFRESH`, `DATA_QUALITY_ISSUE`, `HUMAN_CALLBACK_DUE` | Anything that **ends pursuit or changes commercial meaning**: `NURTURE`, `DISQUALIFIED`, opportunity creation, any pipeline-stage advance |
+| `DO_NOT_CALL` — **immediately**, because a compliance obligation must not wait on a human | Reversing `DO_NOT_CALL` — compliance owner only |
+
+**V2 records what happened; only a human decides what a lead now means
+commercially.** DNC is the deliberate exception, where the safe default runs the
+other way.
+
 
 ---
 
@@ -656,7 +853,54 @@ handling is arguably stronger. Asterisk is preferred on ARI External Media being
 the best-documented external-AI attachment point, and on hiring pool depth. **If
 E2 goes badly on Asterisk, FreeSWITCH is the first fallback, not a redesign.**
 
-### 8.5 The recommendation, stated conditionally
+### 8.5 The 21 evaluation criteria, with honest coverage
+
+The exercise names 21 criteria. Populating all of them across six options would
+be ~126 judgements, most of which I could not support — so rather than omit the
+list entirely or invent it, here is every criterion with what I actually
+established and what I did not. **OSDial is excluded: a project whose last commit
+was 2014 does not merit 21 rows.**
+
+**Basis:** `V` verified against a primary source this session · `I` inferred from
+product category or architecture, not tested · `N` **not assessed**
+
+| # | Criterion | Asterisk | VICIdial | ICTDialer | Hybrid (recommended) | Basis |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | Fit with the signal-selected AI-gatekeeper workflow | Foundation only — no workflow opinion | **Poor** — agent-queue model, wrong abstraction | **Poor** — broadcasting product | **By construction** | I |
+| 2 | Outbound and parallel dialing | Yes, native | Yes, mature and refined | Yes | Via Asterisk | I |
+| 3 | External / embedded AI voice leg | **Yes — ARI External Media** | Via SIP extension pattern | Unknown | Yes | **V** (Asterisk) / I |
+| 4 | API and webhook capabilities | ARI + AMI, documented | AGI/AMI + non-public web APIs | REST via ICTCore | Ours to define | I |
+| 5 | AI integration maturity | Primitive provided, no opinion | Common in industry practice | None found | Ours | I |
+| 6 | Live-call transfer | Yes, mature primitives | Yes | Unclear for live agent transfer | Via Asterisk | I |
+| 7 | Operator presence, reservation, routing | No — not its layer | Presence yes; **provisional reservation no** | No | **Build** | I |
+| 8 | Briefing / screen-pop integration | No | Screen-pop yes; briefing semantics no | No | **Build** | I |
+| 9 | Lead-management integration | No | Extension required | Extension required | **Integrate** | I |
+| 10 | Customization limits | Very high — it is a toolkit | **Constrained** where it matters most: the agent-queue model | Constrained | Unbounded | I |
+| 11 | Reliability and operational ownership | We own the PBX | We own PBX + app + DB | Same | Same — see R10 | I |
+| 12 | Security and compliance | Standard telephony hardening | **Public unauth-to-root chain, plaintext creds by default** | Not assessed | Ours to design | **V** (VICIdial) / N |
+| 13 | Licence and obligations | **GPLv2 + commercial via Sangoma** | **AGPLv2 — network copyleft** | **GPL-3.0** | Ours + Asterisk terms | **V** |
+| 14 | Project activity and release recency | **3 lines released 2026-08-27** | **Active; ViciBox 12.0.2 Jan 2025** | **v2.0.0 Mar 2025; commits Aug 2026** | n/a | **V** |
+| 15 | Supported OS and dependency age | Current | **Ships Asterisk 18 — EOL** | FreeSWITCH-based, current | Current | **V** |
+| 16 | Upgrade, patching, HA, telephony-ops burden | Moderate — one component | **High** — PHP/Perl/DB/PBX, and the EOL baseline | Moderate | Moderate — fewer components than VICIdial | I |
+| 17 | Implementation effort | Low (configure) | **Medium-high** — fighting the model for capability 20 | High — wrong shape | **Medium-high**, but spent on our own product | I |
+| 18 | Ongoing maintenance | Low | **High** | Medium | Medium | I |
+| 19 | Vendor lock-in | Low; Sangoma licence optional | Low technically, **high architecturally** | Low | Low; AI vendor is the real lock-in risk | I |
+| 20 | Licensing and indicative cost | £0 licence | £0 licence | £0 licence | £0 licence + AI vendor + infra | **N — no cost model** |
+| 21 | Time to a controlled pilot | n/a alone | Fast to *a* demo, slow to *this* workflow | Not viable | **~3 weeks to gated evidence**, pilot after | I |
+
+**Rows 12–15 are the ones that carry real evidence, and they are the four that
+decide it.** Everything marked `I` is a reasoned inference from product
+architecture, not a test — a reviewer should treat those cells as arguable, and
+rows 1, 7, 8 and 10 are where I would expect a VICIdial expert to push back
+hardest.
+
+**Row 20 is deliberately empty.** The exercise does not expect precise costs
+without usage or vendor evidence, and a plausible-looking number here would be
+the least defensible thing in the document.
+
+---
+
+## 9. Recommendation
 
 > **Adopt Asterisk (configured, not modified) as the telephony foundation.
 > Integrate an external AI voice agent over ARI External Media. Build a focused
@@ -672,14 +916,40 @@ E2 goes badly on Asterisk, FreeSWITCH is the first fallback, not a redesign.**
 > itself needs re-examination — which is a far more valuable thing to learn in
 > week three than in month nine.
 
+The evidence behind each element is in §8; the experiments the
+conditionality rests on are in §12.
+
 ---
 
-## 9. Success metrics
+## 10. Risks
+
+| # | Risk | Impact | Likelihood | Mitigation / test |
+| --- | --- | --- | --- | --- |
+| R1 | `p` too low to be economic | **Fatal to the business case** | Medium | E4 measures it before build completes |
+| R2 | Live transfer unreliable at rate | High — abandonment, brand damage | Medium | E1 |
+| R3 | AI-leg latency makes handoff feel broken | High | Medium | E2 |
+| R4 | Lead-management API cannot support read/write at rate, or lacks the statuses | High — could reshape the timeline | **Unknown (A6)** | Q3/Q4 + a spike, week 1 |
+| R5 | Operators reject the tool and stop setting available | **Fatal to adoption, and easy to miss** | Medium | Involve callers in briefing design from week 1; measure availability-setting behaviour as a first-class metric |
+| R6 | PII leaks into a persisted artefact | Severe — regulatory and trust | Low with §4.5 controls | Scenario 3 test as a release blocker |
+| R7 | Regulatory position on AI outbound disallows the flow | **Potentially fatal** | Unknown | Q7 to legal, week 1 — before engineering |
+| R8 | Provisional reservation wastes operator time | Medium — erodes the gain | Medium | E3 |
+| R9 | Gatekeepers become resistant to AI callers over time | Medium, grows | Unknown | Track gatekeeper-pass rate as a trend, not a constant |
+| R10 | Telephony operations burden exceeds team capacity | Medium | Medium | Q9; consider managed SIP before self-hosted |
+
+**R5 and R7 deserve more attention than they usually get.** R7 can invalidate the
+product and costs one conversation to check — it should happen in week one. R5 is
+the risk that quietly kills tools like this: the system depends entirely on humans
+voluntarily marking themselves available, and if the experience is bad they
+simply will not.
+
+---
+
+## 11. Success metrics
 
 A small set, chosen so each one can change a decision. The exercise lists 21
 candidates; measuring all of them at pilot scale would produce noise.
 
-### 9.1 The five that matter
+### 11.1 The five that matter
 
 | # | Metric | Why it is on the list | Baseline today |
 | --- | --- | --- | --- |
@@ -693,7 +963,7 @@ Guardrails, tracked but not optimised: transfer failure rate, operator
 utilisation, **AI-phase PII violations (target: zero — any occurrence is an
 incident)**, DNC compliance, % of calls with an approved current signal.
 
-### 9.2 Baselines are missing, and that is the first problem to solve
+### 11.2 Baselines are missing, and that is the first problem to solve
 
 **Almost every metric above has no baseline**, because the current process does
 not instrument itself. `p` in particular has no analogue — nobody today measures
@@ -706,7 +976,7 @@ conversation counts against the same definitions V2 will use. It is unglamorous
 and it is the only way the pilot can prove anything. Without it, V2 can report
 improvement but cannot demonstrate it.
 
-### 9.3 How the pilot tests the four hypotheses
+### 11.3 How the pilot tests the four hypotheses
 
 The exercise asks specifically that we not assume either tailoring level helps
 merely because it is plausible.
@@ -728,30 +998,9 @@ merely because it is plausible.
 
 ---
 
-## 10. Risks and validation plan
+## 12. Validation plan
 
-### 10.1 Principal risks
-
-| # | Risk | Impact | Likelihood | Mitigation / test |
-| --- | --- | --- | --- | --- |
-| R1 | `p` too low to be economic | **Fatal to the business case** | Medium | E4 measures it before build completes |
-| R2 | Live transfer unreliable at rate | High — abandonment, brand damage | Medium | E1 |
-| R3 | AI-leg latency makes handoff feel broken | High | Medium | E2 |
-| R4 | Lead-management API cannot support read/write at rate, or lacks the statuses | High — could reshape the timeline | **Unknown (A6)** | Q3/Q4 + a spike, week 1 |
-| R5 | Operators reject the tool and stop setting available | **Fatal to adoption, and easy to miss** | Medium | Involve callers in briefing design from week 1; measure availability-setting behaviour as a first-class metric |
-| R6 | PII leaks into a persisted artefact | Severe — regulatory and trust | Low with §4.5 controls | Scenario 3 test as a release blocker |
-| R7 | Regulatory position on AI outbound disallows the flow | **Potentially fatal** | Unknown | Q7 to legal, week 1 — before engineering |
-| R8 | Provisional reservation wastes operator time | Medium — erodes the gain | Medium | E3 |
-| R9 | Gatekeepers become resistant to AI callers over time | Medium, grows | Unknown | Track gatekeeper-pass rate as a trend, not a constant |
-| R10 | Telephony operations burden exceeds team capacity | Medium | Medium | Q9; consider managed SIP before self-hosted |
-
-**R5 and R7 deserve more attention than they usually get.** R7 can invalidate the
-product and costs one conversation to check — it should happen in week one. R5 is
-the risk that quietly kills tools like this: the system depends entirely on humans
-voluntarily marking themselves available, and if the experience is bad they
-simply will not.
-
-### 10.2 The validation plan — smallest experiments that produce decision-quality evidence
+The smallest experiments that produce decision-quality evidence.
 
 **Sequenced so the cheapest disqualifying answer comes first.**
 
@@ -771,7 +1020,7 @@ build, because it needs no human leg.
 
 ---
 
-## 11. What I could not verify
+## 13. What I could not verify
 
 Stated plainly, because the exercise asks for evidence gaps rather than
 confident-sounding gaps:

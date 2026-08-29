@@ -227,7 +227,7 @@ Four properties that matter:
 
 **What is retained:** the verified *role* ("Head of General Insurance") and the
 company. **What is not:** any name, direct number, or other identifier the
-gatekeeper may have said aloud — §4.5 of the main document.
+gatekeeper may have said aloud — P-01 §4.5.
 
 ---
 
@@ -265,7 +265,7 @@ Invariants the implementation must guarantee:
 
 ## 6. Where each concept lives
 
-Restating the §4.1 distinction against the diagrams above, because conflating
+Restating the P-01 §4.1 distinction against the diagrams above, because conflating
 these is what produces lost leads:
 
 | Concept | Appears above as | Owned by |

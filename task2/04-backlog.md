@@ -17,7 +17,7 @@ it a platform is in §4.
 ## 0. Gate — evidence before engineering
 
 **Nothing below is committed until these pass.** They are the conditions on the
-recommendation in P-01 §8.5. Roughly three weeks, and they can kill the
+recommendation in P-01 §9. Roughly three weeks, and they can kill the
 programme cheaply — which is the point.
 
 | ID | Gate | Question it answers | Kill condition |
