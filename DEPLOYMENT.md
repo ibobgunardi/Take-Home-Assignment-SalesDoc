@@ -1,5 +1,10 @@
 # Deployment
 
+The app is deployed at **<ip>>**
+
+One process (Node/Express) serves both the JSON API and the built React bundle,
+per D-15/D-19. nginx terminates TLS in front of it.
+
 > **State is in memory (D-10).** A redeploy or restart clears sessions and CRM
 > data. Leads are re-seeded on boot, so a restarted instance is immediately
 > usable; an in-flight session created before a restart returns `404` and the UI
@@ -51,6 +56,7 @@ symlinked into `sites-enabled/`:
 server {
     listen 80;
     listen [::]:80;
+    server_name <ip>;
 
     location / {
         proxy_pass http://127.0.0.1:3200;
@@ -67,7 +73,7 @@ server {
 can issue a certificate without owning a domain:
 
 ```bash
-certbot --nginx -d 72.61.214.167.sslip.io --agree-tos --redirect
+certbot --nginx -d <ip> --agree-tos --redirect
 ```
 
 certbot rewrote the block above to listen on 443 and added the HTTP→HTTPS

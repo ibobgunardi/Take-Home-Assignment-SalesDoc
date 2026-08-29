@@ -42,25 +42,25 @@
 | ID | Requirement | Source | Implementation Area | Test | Verification | Status |
 | -- | ----------- | ------ | ------------------- | ---- | ------------ | ------ |
 | R-00 | Stack is Node.js (**Express or Fastify**) + React (**Vite or Next**) as specified — not another framework | T1-Sub | `server/`, `client/` | — | check `package.json` deps in both | Done |
-| R-01 | `Lead` has `id, name, company, phone, email` | T1-P1 | `models/lead` | model/seed unit test | `GET /leads` returns all fields | Todo |
-| R-02 | `Lead.crmExternalId` optional, absent until first CRM sync | T1-P1, D-01 | `models/lead` | unit: starts undefined, set after sync | inspect lead after a call | Todo |
-| R-03 | `Call` has `id, leadId, sessionId, status, startedAt, endedAt, providerCallId` | T1-P1 | `models/call` | unit: shape on create | session payload shows fields | Todo |
-| R-04 | `Call.status` is exactly `CONNECTED \| NO_ANSWER \| BUSY \| VOICEMAIL \| CANCELED_BY_DIALER` — no invented values | T1-P1, D-03 | `models/call` | unit: enum has exactly 5 values | grep for stray statuses | Todo |
-| R-05 | Call `phase` (`DIALING\|LIVE\|ENDED`) is separate from `status`; `status`+`endedAt` set atomically on ENDED only | D-03 | `services/dialer` | unit: no call has status without endedAt; no `DIALING`/`LIVE` in `Call_Status` | UI shows Dialing / Connected-live | Todo |
-| R-06 | `providerCallId` populated as a string by the simulated provider | T1-P1 | `services/simulator` | unit: non-empty string, unique | session payload | Todo |
-| R-07 | `DialerSession` has `id, agentId, leadQueue, activeCallIds, winnerCallId, status, metrics` | T1-P1 | `models/session` | unit: shape on create | `GET /sessions/:id` | Todo |
-| R-08 | `concurrency` fixed to 2 and not user-configurable | T1-P1 | `models/session` | unit: constant is 2 | no API accepts concurrency | Todo |
-| R-09 | `session.status` is exactly `RUNNING \| STOPPED` | T1-P1, D-02 | `models/session` | unit: enum has exactly 2 values | — | Todo |
-| R-10 | `metrics` has `attempted, connected, failed, canceled` | T1-P1, D-04 | `models/session` | unit: all four present, start at 0 | UI metrics panel | Todo |
-| R-11 | `CRMActivity` has `id, leadId, crmExternalId, type, callId, disposition, notes, createdAt` | T1-P1 | `models/crm-activity` | unit: shape | `GET /leads/:id/crm-activities` | Todo |
-| R-12 | Seed data: 4–8 leads | T1-P3 | `seed` | unit: count within 4..8 | Screen 1 shows them | Todo |
+| R-01 | `Lead` has `id, name, company, phone, email` | T1-P1 | `models/lead` | model/seed unit test | `GET /leads` returns all fields | Tested |
+| R-02 | `Lead.crmExternalId` optional, absent until first CRM sync | T1-P1, D-01 | `models/lead` | unit: starts undefined, set after sync | inspect lead after a call | Impl |
+| R-03 | `Call` has `id, leadId, sessionId, status, startedAt, endedAt, providerCallId` | T1-P1 | `models/call` | unit: shape on create | session payload shows fields | Tested |
+| R-04 | `Call.status` is exactly `CONNECTED \| NO_ANSWER \| BUSY \| VOICEMAIL \| CANCELED_BY_DIALER` — no invented values | T1-P1, D-03 | `models/call` | unit: enum has exactly 5 values | grep for stray statuses | Tested |
+| R-05 | Call `phase` (`DIALING\|LIVE\|ENDED`) is separate from `status`; `status`+`endedAt` set atomically on ENDED only | D-03 | `services/dialer` | unit: no call has status without endedAt; no `DIALING`/`LIVE` in `Call_Status` | UI shows Dialing / Connected-live | Impl |
+| R-06 | `providerCallId` populated as a string by the simulated provider | T1-P1 | `services/simulator` | unit: non-empty string, unique | session payload | Tested |
+| R-07 | `DialerSession` has `id, agentId, leadQueue, activeCallIds, winnerCallId, status, metrics` | T1-P1 | `models/session` | unit: shape on create | `GET /sessions/:id` | Tested |
+| R-08 | `concurrency` fixed to 2 and not user-configurable | T1-P1 | `models/session` | unit: constant is 2 | no API accepts concurrency | Tested |
+| R-09 | `session.status` is exactly `RUNNING \| STOPPED` | T1-P1, D-02 | `models/session` | unit: enum has exactly 2 values | — | Tested |
+| R-10 | `metrics` has `attempted, connected, failed, canceled` | T1-P1, D-04 | `models/session` | unit: all four present, start at 0 | UI metrics panel | Tested |
+| R-11 | `CRMActivity` has `id, leadId, crmExternalId, type, callId, disposition, notes, createdAt` | T1-P1 | `models/crm-activity` | unit: shape | `GET /leads/:id/crm-activities` | Tested |
+| R-12 | Seed data: 4–8 leads | T1-P3 | `seed` | unit: count within 4..8 | Screen 1 shows them | Tested |
 
 ### 1.2 Dialer session behaviour — **core invariants**
 
 | ID | Requirement | Source | Implementation Area | Test | Verification | Status |
 | -- | ----------- | ------ | ------------------- | ---- | ------------ | ------ |
 | **R-20** | **`activeCallIds.length <= 2` at every observable moment — never violated on any path** | **T1-P1** | `services/dialer` | **dedicated concurrency suite (R-22, R-24, R-26, R-30, R-32)** | assert on every poll of a live session | **Todo** |
-| R-21 | Session created from selected leads; `leadQueue` preserves the selection | T1-P3, D-08 | `services/dialer` | unit | `POST /sessions` response | Todo |
+| R-21 | Session created from selected leads; `leadQueue` preserves the selection | T1-P3, D-08 | `services/dialer` | unit | `POST /sessions` response | Impl |
 | R-22 | Start dials up to 2 leads immediately; not 1, not 3 | T1-P1 | `services/dialer` | unit: 5 leads → exactly 2 active | Screen 2 shows 2 lines | Todo |
 | R-23 | Terminal call frees its line and the next queued lead is promoted | T1-P1 | `services/dialer` | unit: queue advances by one | observe line swap in UI | Todo |
 | R-24 | Two calls ending in the **same tick** promote exactly two, never three | T1-P1 | `services/dialer` | unit: near-simultaneous terminal | — | Todo |
@@ -76,19 +76,19 @@
 | R-32 | Stop terminates all in-flight calls and promotes nothing; `DIALING`->`CANCELED_BY_DIALER`, `LIVE`->`CONNECTED` | D-11, D-03 | `services/dialer` | unit: 0 active after stop; stop during a LIVE winner yields `CONNECTED` | Stop button in UI | Todo |
 | R-33 | Stop is idempotent; start on a `RUNNING` session is a no-op | D-11 | `routes/sessions` | unit: double stop / double start | — | Todo |
 | R-34 | Metrics map per D-04 and satisfy `connected+failed+canceled == attempted` at rest | D-04 | `services/dialer` | unit: invariant asserted after each scenario | UI metrics vs call list | Todo |
-| R-35 | Call simulation is deterministic and injectable; no `Math.random`/bare `setTimeout` in domain logic | D-06 | `services/simulator` | scripted simulator used by all dialer tests | `grep -rn "Math.random"` in domain | Todo |
+| R-35 | Call simulation is deterministic and injectable; no `Math.random`/bare `setTimeout` in domain logic | D-06 | `services/simulator` | scripted simulator used by all dialer tests | `grep -rn "Math.random"` in domain | Impl |
 | R-36 | Created-but-unstarted session is `STOPPED` with `startedAt === null`; start is legal only then | D-14 | `services/dialer` | unit: 3 lifecycle states distinguishable | — | Todo |
 | R-37 | Start on a **finished** session → `409`; there is no restart | D-14 | `routes/sessions` | unit | UI offers "New session", not Start | Todo |
 | R-38 | `agentId` supplied by a seeded hardcoded demo agent (`agent-1`); server defaults it when absent | D-14 | `seed`, `routes/sessions` | unit: default applied | `POST /sessions` without agentId works | Todo |
 | R-39 | One `setInterval` per `RUNNING` session at `TICK_MS = 250` calling only `advance()`; cleared on stop; no per-call timers | D-16 | `services/dialer` | unit: interval cleared on stop | no timer leak after session ends | Todo |
 | R-39a | Tests drive `advance()` directly with a fake clock; the interval is never started in tests | D-16 | tests | the suite itself | — | Todo |
-| R-39b | Simulator uses the D-17 ring/talk durations and outcome mix | D-17 | `services/simulator` | unit: draws within bounds | a 5-lead demo runs ~60–90s and reaches `STOPPED`; **1 connect is a normal run, not a defect** | Todo |
+| R-39b | Simulator uses the D-17 ring/talk durations and outcome mix | D-17 | `services/simulator` | unit: draws within bounds | a 5-lead demo runs ~60–90s and reaches `STOPPED`; **1 connect is a normal run, not a defect** | Impl |
 
 ### 1.3 CRM integration — **idempotency is critical**
 
 | ID | Requirement | Source | Implementation Area | Test | Verification | Status |
 | -- | ----------- | ------ | ------------------- | ---- | ------------ | ------ |
-| R-40 | Mock CRM lives inside the backend, in memory, as a separate store from the app store; reached only through its module (in-process, not via self-HTTP) | T1-P2, D-12 | `services/mock-crm` | unit | two distinct stores exist | Todo |
+| R-40 | Mock CRM lives inside the backend, in memory, as a separate store from the app store; reached only through its module (in-process, not via self-HTTP) | T1-P2, D-12 | `services/mock-crm` | unit | two distinct stores exist | Impl |
 | R-41 | Terminal outcome → contact upsert: create if lead has no `crmExternalId`, else update | T1-P2, D-01 | `services/crm-sync` | unit: both branches | `GET /mock-crm/contacts` | Todo |
 | R-42 | Created contact's id written back onto the lead as `crmExternalId` | D-01 | `services/crm-sync` | unit | lead shows id after first call | Todo |
 | R-43 | Then create activity with `disposition` + basic `notes` | T1-P2 | `services/crm-sync` | unit: fields populated | `GET /mock-crm/activities` | Todo |
@@ -152,7 +152,7 @@
 | R-108 | Deployed to a free host; URL reachable | T1-Sub, D-15 | deployment | — | **open the URL and use it** | Verified |
 | R-108a | **Walking skeleton deployed on day one**, before feature work | D-15 | deployment | — | URL served something on day 1 | Verified |
 | R-108b | Single host serves API + built React bundle from one process | D-15 | deployment | — | one URL, no CORS in prod | Verified |
-| R-108c | Leads seeded on boot, so a cold instance is immediately usable | D-15 | `seed` | unit | restart the host, open the URL | Todo |
+| R-108c | Leads seeded on boot, so a cold instance is immediately usable | D-15 | `seed` | unit | restart the host, open the URL | Tested |
 | R-108d | README + NOTES state that state is in-memory and a restart clears it | D-15 | docs | — | reviewed | Impl |
 | R-109 | Git repo pushed and link available | T1-Sub | repo | — | open the link | Todo |
 | R-110 | Email URL + repo link to `intern1.aisalesdr@gmail.com` and `ellee@aisalesdr.co` | T1-Sub | submission | — | **user sends this — Claude must not send email** | Todo |
