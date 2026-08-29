@@ -107,8 +107,8 @@ Everything else is negotiable under time pressure. These are not:
 
 1. **A reachable deployed URL** (R-108, D-15). Deploy a **walking skeleton on
    day one**, before feature work — step 2 of the implementation order, not the
-   last step. Free-tier cold starts wipe in-memory state (D-10), so seed on
-   boot, handle an expired session in the UI, and disclose it.
+   last step. A redeploy clears in-memory state (D-10), so seed on boot, handle
+   an expired session in the UI, and disclose it.
 2. **The submission email sent** to `intern1.aisalesdr@gmail.com` and
    `ellee@aisalesdr.co` with the URL and repo link (R-110). **The user sends
    this — never Claude.** Remind them; do not let it be what runs out of time.

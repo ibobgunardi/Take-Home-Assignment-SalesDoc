@@ -153,7 +153,7 @@
 | R-108a | **Walking skeleton deployed on day one**, before feature work | D-15 | deployment | — | URL served something on day 1 | Todo |
 | R-108b | Single host serves API + built React bundle from one process | D-15 | deployment | — | one URL, no CORS in prod | Todo |
 | R-108c | Leads seeded on boot, so a cold instance is immediately usable | D-15 | `seed` | unit | restart the host, open the URL | Todo |
-| R-108d | README + NOTES state that state is in-memory and a cold start clears it | D-15 | docs | — | reviewed | Todo |
+| R-108d | README + NOTES state that state is in-memory and a restart clears it | D-15 | docs | — | reviewed | Todo |
 | R-109 | Git repo pushed and link available | T1-Sub | repo | — | open the link | Todo |
 | R-110 | Email URL + repo link to `intern1.aisalesdr@gmail.com` and `ellee@aisalesdr.co` | T1-Sub | submission | — | **user sends this — Claude must not send email** | Todo |
 

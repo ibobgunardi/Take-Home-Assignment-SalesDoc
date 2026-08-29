@@ -623,8 +623,8 @@ in-memory permission (D-10) sits awkwardly with free hosting.
   slice that renders anything goes to the host immediately. Deployment problems
   are discovered at hour 2, not hour 23.
 - **One host, both parts.** Prefer a single service that serves the Express/
-  Fastify API *and* the built React bundle from one process (Render, Railway,
-  Fly.io free tiers all do this). A split client/API deployment doubles the
+  Fastify API *and* the built React bundle from one process (D-19: Node under
+  systemd, Caddy in front). A split client/API deployment doubles the
   config surface and adds CORS and env-var wiring for no reviewer benefit.
 - **A process restart still clears state.** The VPS does not idle out (D-19), so
   there are no cold starts during a review — but a redeploy or crash restarts
@@ -638,7 +638,7 @@ in-memory permission (D-10) sits awkwardly with free hosting.
 
 **Why reasonable.** The deployed URL is one of only two things a reviewer
 literally cannot proceed without, so it is scheduled first rather than last.
-Persisting to a database to survive cold starts would contradict D-10 and the
+Persisting to a database to survive a restart would contradict D-10 and the
 spec's explicit in-memory permission; handling the expiry gracefully and saying
 so is the honest, cheaper answer.
 
