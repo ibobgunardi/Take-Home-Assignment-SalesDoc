@@ -43,7 +43,7 @@
 | -- | ----------- | ------ | ------------------- | ---- | ------------ | ------ |
 | R-00 | Stack is Node.js (**Express or Fastify**) + React (**Vite or Next**) as specified — not another framework | T1-Sub | `server/`, `client/` | — | check `package.json` deps in both | Done |
 | R-01 | `Lead` has `id, name, company, phone, email` | T1-P1 | `models/lead` | model/seed unit test | `GET /leads` returns all fields | Tested |
-| R-02 | `Lead.crmExternalId` optional, absent until first CRM sync | T1-P1, D-01 | `models/lead` | unit: starts undefined, set after sync | inspect lead after a call | Impl |
+| R-02 | `Lead.crmExternalId` optional, absent until first CRM sync | T1-P1, D-01 | `models/lead` | unit: starts undefined, set after sync | inspect lead after a call | Tested |
 | R-03 | `Call` has `id, leadId, sessionId, status, startedAt, endedAt, providerCallId` | T1-P1 | `models/call` | unit: shape on create | session payload shows fields | Tested |
 | R-04 | `Call.status` is exactly `CONNECTED \| NO_ANSWER \| BUSY \| VOICEMAIL \| CANCELED_BY_DIALER` — no invented values | T1-P1, D-03 | `models/call` | unit: enum has exactly 5 values | grep for stray statuses | Tested |
 | R-05 | Call `phase` (`DIALING\|LIVE\|ENDED`) is separate from `status`; `status`+`endedAt` set atomically on ENDED only | D-03 | `services/dialer` | unit: no call has status without endedAt; no `DIALING`/`LIVE` in `Call_Status` | UI shows Dialing / Connected-live | Impl |
@@ -88,17 +88,17 @@
 
 | ID | Requirement | Source | Implementation Area | Test | Verification | Status |
 | -- | ----------- | ------ | ------------------- | ---- | ------------ | ------ |
-| R-40 | Mock CRM lives inside the backend, in memory, as a separate store from the app store; reached only through its module (in-process, not via self-HTTP) | T1-P2, D-12 | `services/mock-crm` | unit | two distinct stores exist | Impl |
-| R-41 | Terminal outcome → contact upsert: create if lead has no `crmExternalId`, else update | T1-P2, D-01 | `services/crm-sync` | unit: both branches | `GET /mock-crm/contacts` | Todo |
-| R-42 | Created contact's id written back onto the lead as `crmExternalId` | D-01 | `services/crm-sync` | unit | lead shows id after first call | Todo |
-| R-43 | Then create activity with `disposition` + basic `notes` | T1-P2 | `services/crm-sync` | unit: fields populated | `GET /mock-crm/activities` | Todo |
-| R-44 | Activity saved in **the app's own store** (`CRMActivity`) | T1-P2 | `services/crm-sync` | unit | `GET /leads/:id/crm-activities` | Todo |
-| R-45 | Activity saved in **the mock CRM store** as well | T1-P2 | `services/crm-sync` | unit | `GET /mock-crm/activities` | Todo |
-| **R-46** | **One `callId` → at most one CRMActivity, in both stores, however many times the terminal event is handled** | **T1-P2** | `services/crm-sync` | **explicit test: sync same call 3× → count stays 1 in both stores** | compare counts to call count | **Todo** |
-| R-47 | Idempotency key is `callId` | T1-P2 | `services/crm-sync` | unit | — | Todo |
-| R-48 | Every terminal status produces an activity (all 5, incl. `CANCELED_BY_DIALER`) | D-05 | `services/crm-sync` | unit: one per status | activity count == call count | Todo |
-| R-49 | `disposition` on the activity is the `Call_Status` value | D-05 | `services/crm-sync` | unit | inspect activities | Todo |
-| R-50 | Repeated contact upsert for one lead does not duplicate the contact | D-01 | `services/mock-crm` | unit: 2 calls, 1 lead → 1 contact | `GET /mock-crm/contacts` | Todo |
+| R-40 | Mock CRM lives inside the backend, in memory, as a separate store from the app store; reached only through its module (in-process, not via self-HTTP) | T1-P2, D-12 | `services/mock-crm` | unit | two distinct stores exist | Tested |
+| R-41 | Terminal outcome → contact upsert: create if lead has no `crmExternalId`, else update | T1-P2, D-01 | `services/crm-sync` | unit: both branches | `GET /mock-crm/contacts` | Tested |
+| R-42 | Created contact's id written back onto the lead as `crmExternalId` | D-01 | `services/crm-sync` | unit | lead shows id after first call | Tested |
+| R-43 | Then create activity with `disposition` + basic `notes` | T1-P2 | `services/crm-sync` | unit: fields populated | `GET /mock-crm/activities` | Tested |
+| R-44 | Activity saved in **the app's own store** (`CRMActivity`) | T1-P2 | `services/crm-sync` | unit | `GET /leads/:id/crm-activities` | Tested |
+| R-45 | Activity saved in **the mock CRM store** as well | T1-P2 | `services/crm-sync` | unit | `GET /mock-crm/activities` | Tested |
+| **R-46** | **One `callId` → at most one CRMActivity, in both stores, however many times the terminal event is handled** | **T1-P2** | `services/crm-sync` | **explicit test: sync same call 3× → count stays 1 in both stores** | compare counts to call count | Tested |
+| R-47 | Idempotency key is `callId` | T1-P2 | `services/crm-sync` | unit | — | Tested |
+| R-48 | Every terminal status produces an activity (all 5, incl. `CANCELED_BY_DIALER`) | D-05 | `services/crm-sync` | unit: one per status | activity count == call count | Tested |
+| R-49 | `disposition` on the activity is the `Call_Status` value | D-05 | `services/crm-sync` | unit | inspect activities | Tested |
+| R-50 | Repeated contact upsert for one lead does not duplicate the contact | D-01 | `services/mock-crm` | unit: 2 calls, 1 lead → 1 contact | `GET /mock-crm/contacts` | Tested |
 
 ### 1.4 API endpoints
 

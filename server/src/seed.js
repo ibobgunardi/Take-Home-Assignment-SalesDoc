@@ -5,6 +5,7 @@ import * as callStore from './store/calls.js';
 import * as sessionStore from './store/sessions.js';
 import * as activityStore from './store/crm-activities.js';
 import * as mockCrm from './services/mock-crm.js';
+import * as crmSync from './services/crm-sync.js';
 import { DEMO_AGENT_ID } from './config.js';
 
 // R-12: 4-8 leads. Six is enough to show a queue draining across several
@@ -30,6 +31,7 @@ export function seed() {
   sessionStore.clear();
   activityStore.clear();
   mockCrm.clear();
+  crmSync.clear();
   resetIds();
 
   for (const lead of SEED_LEADS) {
