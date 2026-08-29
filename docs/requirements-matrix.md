@@ -41,7 +41,7 @@
 
 | ID | Requirement | Source | Implementation Area | Test | Verification | Status |
 | -- | ----------- | ------ | ------------------- | ---- | ------------ | ------ |
-| R-00 | Stack is Node.js (**Express or Fastify**) + React (**Vite or Next**) as specified — not another framework | T1-Sub | `server/`, `client/` | — | check `package.json` deps in both | Todo |
+| R-00 | Stack is Node.js (**Express or Fastify**) + React (**Vite or Next**) as specified — not another framework | T1-Sub | `server/`, `client/` | — | check `package.json` deps in both | Done |
 | R-01 | `Lead` has `id, name, company, phone, email` | T1-P1 | `models/lead` | model/seed unit test | `GET /leads` returns all fields | Todo |
 | R-02 | `Lead.crmExternalId` optional, absent until first CRM sync | T1-P1, D-01 | `models/lead` | unit: starts undefined, set after sync | inspect lead after a call | Todo |
 | R-03 | `Call` has `id, leadId, sessionId, status, startedAt, endedAt, providerCallId` | T1-P1 | `models/call` | unit: shape on create | session payload shows fields | Todo |
@@ -113,7 +113,7 @@
 | R-66 | `POST /sessions/:id/stop` | D-08 | `routes/sessions` | integration test | Stop button | Todo |
 | R-67 | `GET /sessions/:id` returns session + lines + metrics + winner + per-call CRM status in one response | D-08 | `routes/sessions` | integration test | polling payload | Todo |
 | R-68 | Unknown session/lead id → `404`, not a 500 or a crash | D-08 | `routes/*` | integration test | curl a bogus id | Todo |
-| R-69 | CORS configured so the Vite dev client can reach the API | D-08 | `server` | — | client loads without CORS error | Todo |
+| R-69 | CORS configured so the Vite dev client can reach the API | D-08 | `server` | — | client loads without CORS error | Impl |
 
 ### 1.5 Frontend
 
@@ -141,19 +141,19 @@
 
 | ID | Requirement | Source | Implementation Area | Test | Verification | Status |
 | -- | ----------- | ------ | ------------------- | ---- | ------------ | ------ |
-| R-100 | `npm install` works from a clean clone | T1-Sub | root | — | **actually run in a clean dir** | Todo |
-| R-101 | `npm run dev` (or documented separate client/server commands) starts everything | T1-Sub | root scripts | — | **actually run** | Todo |
+| R-100 | `npm install` works from a clean clone | T1-Sub | root | — | **actually run in a clean dir** | Impl |
+| R-101 | `npm run dev` (or documented separate client/server commands) starts everything | T1-Sub | root scripts | — | **actually run** | Verified |
 | R-102 | README with setup instructions, run commands, and how to demo the flow | T1-Sub | `README.md` | — | follow it verbatim | Todo |
 | R-103 | `NOTES.md`: tradeoffs | T1-Sub | `NOTES.md` | — | reviewed | Todo |
 | R-104 | `NOTES.md`: what you would do next | T1-Sub | `NOTES.md` | — | reviewed | Todo |
 | R-105 | `NOTES.md`: how AI tools were used | T1-Sub | `NOTES.md` | — | reviewed | Todo |
 | R-106 | `NOTES.md`: **what you verified** — factual, labelled, no fabrication | T1-Sub | `NOTES.md` | — | every claim traceable to a run | Todo |
 | R-107 | Test suite runs green via a documented command | D-06 | `package.json` | — | **actually run, output observed** | Todo |
-| R-108 | Deployed to a free host; URL reachable | T1-Sub, D-15 | deployment | — | **open the URL and use it** | Todo |
-| R-108a | **Walking skeleton deployed on day one**, before feature work | D-15 | deployment | — | URL served something on day 1 | Todo |
-| R-108b | Single host serves API + built React bundle from one process | D-15 | deployment | — | one URL, no CORS in prod | Todo |
+| R-108 | Deployed to a free host; URL reachable | T1-Sub, D-15 | deployment | — | **open the URL and use it** | Verified |
+| R-108a | **Walking skeleton deployed on day one**, before feature work | D-15 | deployment | — | URL served something on day 1 | Verified |
+| R-108b | Single host serves API + built React bundle from one process | D-15 | deployment | — | one URL, no CORS in prod | Verified |
 | R-108c | Leads seeded on boot, so a cold instance is immediately usable | D-15 | `seed` | unit | restart the host, open the URL | Todo |
-| R-108d | README + NOTES state that state is in-memory and a restart clears it | D-15 | docs | — | reviewed | Todo |
+| R-108d | README + NOTES state that state is in-memory and a restart clears it | D-15 | docs | — | reviewed | Impl |
 | R-109 | Git repo pushed and link available | T1-Sub | repo | — | open the link | Todo |
 | R-110 | Email URL + repo link to `intern1.aisalesdr@gmail.com` and `ellee@aisalesdr.co` | T1-Sub | submission | — | **user sends this — Claude must not send email** | Todo |
 

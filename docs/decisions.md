@@ -752,3 +752,47 @@ appearing not to have noticed there was a decision.
 
 Append new decisions here as `D-20`, `D-21`, … using the same four-part format.
 Do not renumber existing entries.
+
+## D-20 — nginx + certbot instead of Caddy (supersedes part of D-19)
+
+**Ambiguity.** None in the spec — this is a correction to D-19, which was
+written before anyone had looked at the target machine.
+
+**The problem.** D-19 specified "TLS via **Caddy** reverse-proxying to the Node
+process, with a hostname from **`sslip.io`**". Caddy was not installed on the
+VPS and could not be: nginx already binds `:80` and `:443` there and serves
+**sixteen unrelated production sites** (`iapmigas`, `kasir-*`, `sunnyhr`,
+`cashforcartoday`, …). Caddy needs those ports for both the reverse proxy and
+its ACME challenge. Installing it would have meant stopping a live TLS
+terminator that other people's applications depend on.
+
+D-19's illustrative `reverse_proxy localhost:3000` was also unusable: ports
+3000, 3001, 3010, 4001, 5000, 5009, 8000 and 8080 were already taken on that
+host.
+
+**Decision.** Keep every part of D-19 except the proxy implementation:
+
+| D-19 said | Actual |
+| --- | --- |
+| Caddy | **nginx** (already installed, already terminating TLS) |
+| Caddy's automatic ACME | **certbot** `--nginx` (already installed, account already registered) |
+| `<ip>.sslip.io` hostname | unchanged — `72.61.214.167.sslip.io` |
+| Node under systemd | unchanged — `salesdoc-dialer.service` |
+| single process serves API + bundle | unchanged |
+| `localhost:3000` | **`127.0.0.1:3200`** |
+
+Provisioning is one new `server_name` block in `sites-available/` plus a
+symlink; no existing site's configuration was modified. Full detail in
+`DEPLOYMENT.md`.
+
+**Why reasonable.** The requirement D-19 was serving is "a reachable HTTPS URL
+from one process" (R-108, R-108b), not "Caddy specifically". nginx + certbot
+delivers exactly that, with a genuine Let's Encrypt certificate and an
+HTTP→HTTPS redirect, while leaving sixteen unrelated production sites untouched.
+Choosing the tool the machine already runs is also the smaller-moving-parts
+option, which is the standing tiebreaker in `CLAUDE.md`.
+
+**Tradeoff.** The deployment now depends on a shared nginx that this project
+does not own, so an unrelated change to that server could affect this URL. The
+mitigation is that the block is self-contained and independently reloadable, and
+`DEPLOYMENT.md` records it verbatim so it can be recreated in minutes.
