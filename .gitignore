@@ -48,3 +48,6 @@ emailRaw.txt
 
 # ---- agent scratch ----
 .codex/
+
+# Generated email attachments (regenerate from task2/*.md)
+submission-pdf/
