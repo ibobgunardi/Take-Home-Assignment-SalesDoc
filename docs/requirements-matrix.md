@@ -213,9 +213,9 @@ Task 2 is **half the assignment**, budgeted at **~4.5 hours**, written to
 
 | ID | Deliverable | Source | Status |
 | -- | ----------- | ------ | ------ |
-| P-01 | Product refinement document, ~8–15 pages | V2 §Expected deliverables | Todo |
-| P-02 | Workflow diagram — main path + exceptions | V2 §Expected deliverables | Todo |
-| P-03 | Capability decision matrix (adopt/configure/extend/integrate/build/validate/defer) | V2 §Expected deliverables | Todo |
-| P-04 | Prioritized backlog with acceptance criteria for pilot-critical items | V2 §Expected deliverables | Todo |
-| P-05 | 15-minute decision presentation | V2 §Expected deliverables | Todo |
-| P-06 | Three required acceptance scenarios addressed (primary, no-human-available, data-minimization) | V2 §Required acceptance scenarios | Todo |
+| P-01 | Product refinement document, ~8–15 pages | V2 §Expected deliverables | Done — `task2/01-product-refinement.md` (~7,400 words / ~12 pages excl. appendices) |
+| P-02 | Workflow diagram — main path + exceptions | V2 §Expected deliverables | Done — `task2/02-workflow-diagram.md`; 4 diagrams, all verified to render with mermaid v11 |
+| P-03 | Capability decision matrix (adopt/configure/extend/integrate/build/validate/defer) | V2 §Expected deliverables | Done — `task2/03-capability-matrix.md`; 25 capabilities + candidate coverage + assessed/not-assessed split |
+| P-04 | Prioritized backlog with acceptance criteria for pilot-critical items | V2 §Expected deliverables | Done — `task2/04-backlog.md`; 4 priority groups, acceptance criteria on pilot-critical |
+| P-05 | 15-minute decision presentation | V2 §Expected deliverables | Done — `task2/05-presentation.md`; 13 slides + speaker notes + Q&A prep |
+| P-06 | Three required acceptance scenarios addressed (primary, no-human-available, data-minimization) | V2 §Required acceptance scenarios | Done — primary/no-operator/data-minimization in `01` §7.1–7.3, no-operator path also drawn in `02` §4 |
