@@ -155,6 +155,32 @@ eight months ago — actively damaging to the brand.
 *Actions:* approve wording, set retention, audit, suspend.
 *Failure case:* discovering the AI persisted a mobile number someone volunteered.
 
+**Sales / RevOps administrator.**
+*Goal:* pipeline reporting that reflects what actually happened on the phones.
+*Needs:* the mapping between V2 attempt outcomes and lead statuses, the
+write-back success rate, and an exception queue for writes that failed.
+*Actions:* configure the outcome-to-status mapping, reconcile failed writes,
+decide which statuses V2 may set unattended.
+*Decisions:* which next-action statuses are safe for a machine to set; when a
+lead needs human judgement before its status changes.
+*Failure cases:* **silent** write failures - the worst kind, because reporting
+looks fine and is wrong; V2 setting a commercial status a human should have
+judged; duplicate attempts appearing on one lead after a restart.
+
+**System administrator.**
+*Goal:* keep telephony and the orchestration service healthy, knowing that a
+failure is audible to a customer within seconds rather than discovered in a
+dashboard tomorrow.
+*Needs:* health of SIP trunks, media paths, AI-vendor connectivity, queue depth,
+and any stuck provisional reservations.
+*Actions:* patch, upgrade, fail over, drain the queue, restart safely mid-shift.
+*Decisions:* drain or restart; whether to fail over the AI vendor; whether an
+upgrade can wait until outside calling hours.
+*Failure cases:* an upgrade that requires a full stop during calling hours; a
+stuck reservation quietly shrinking the operator pool so the floor looks
+understaffed; no runbook for a transfer-path outage. **This role may not exist
+in-house today** - see Q9, and risk R10.
+
 ### 2.4 What has not been validated
 
 These are assumptions, listed so they can be attacked rather than inherited:
@@ -300,6 +326,31 @@ the hold the company itself imposes"). It is also the decision most likely to be
 wrong in a way that only measurement will reveal — if the provisional-to-actual
 conversion rate is low, operators are repeatedly reserved for calls that die, and
 utilisation suffers. **Experiment E3 measures exactly this.**
+
+#### How competing calls are prioritised
+
+Contention is not an edge case: whenever verified PICs arrive faster than
+operators free up, two calls want the same person. An operator takes one call at
+a time (requirement 9), so the tie must be broken by an explicit rule rather than
+by whichever event happened to be processed first.
+
+**Ordering, first match wins:**
+
+1. **A verified PIC already on the line outranks a call still in gatekeeper
+   hold.** A real human waiting beats a prediction that one is coming. This is
+   the only rule that matters most of the time.
+2. **Longest PIC wait first**, among calls at the same stage. Prevents
+   starvation, and directly protects the abandonment ceiling.
+3. **Signal tier** - a Tier 1 signal outranks Tier 2 (§4.6.2).
+4. **Campaign priority**, set explicitly by the campaign manager.
+5. **Arrival order** as a deterministic final tie-break - never random, so
+   behaviour is reproducible when something is being investigated.
+
+**Preemption rule:** an operator *provisionally* reserved for call A may be
+taken by call B only under rule 1 - B has a verified PIC and A is still in hold.
+**An operator who has hard-committed is never preempted.** Reassigning someone
+who has already accepted a call is how you produce two abandoned PICs instead of
+one.
 
 ### 4.4 Recommended AI-call-to-human ratio, and why the arithmetic matters more than the number
 

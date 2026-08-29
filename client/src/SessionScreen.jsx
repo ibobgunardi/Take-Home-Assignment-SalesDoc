@@ -67,6 +67,15 @@ export default function SessionScreen({ sessionId, onExpired, onNewSession }) {
           </span>
         </div>
 
+        {/* Queue progress: makes the list draining visible at a glance (R-95). */}
+        <div className="queue-bar" aria-hidden="true">
+          <span
+            style={{
+              width: `${session.queue.total ? (session.queue.dialed / session.queue.total) * 100 : 0}%`,
+            }}
+          />
+        </div>
+
         {finished && session.completionReason && (
           <p className="muted small">
             {session.completionReason === 'QUEUE_EXHAUSTED'
@@ -199,9 +208,12 @@ function LineCard({ index, call, session }) {
   return (
     <article className={`line line-${call.phase.toLowerCase()}`}>
       <header>
-        {label}
-        <span className={`status status-${call.phase}`}>{phaseLabel}</span>
+        <span>{label}</span>
+        <Elapsed call={call} now={session.now} />
       </header>
+      <div className="line-status">
+        <span className={`status status-${call.phase}`}>{phaseLabel}</span>
+      </div>
       <strong>{call.lead.name}</strong>
       <div className="muted small">{call.lead.company}</div>
       <div className="mono">{call.lead.phone}</div>
@@ -210,6 +222,22 @@ function LineCard({ index, call, session }) {
       </footer>
     </article>
   );
+}
+
+/**
+ * Elapsed time on a line. Pure presentation derived from the server's
+ * timestamps - the client still holds no dialer state (R-91). It re-renders on
+ * each poll, so it ticks at the poll interval, which is all a call timer needs.
+ */
+function Elapsed({ call, now }) {
+  const from = call.phase === 'LIVE' ? call.answeredAt : call.startedAt;
+  const to = call.phase === 'ENDED' ? call.endedAt : (now ?? Date.now());
+  const ms = new Date(to).getTime() - new Date(from).getTime();
+  if (!Number.isFinite(ms) || ms < 0) return null;
+
+  const total = Math.floor(ms / 1000);
+  const label = `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
+  return <span className="line-timer">{label}</span>;
 }
 
 /** R-88: per-call CRM activity creation status, plainly visible. */

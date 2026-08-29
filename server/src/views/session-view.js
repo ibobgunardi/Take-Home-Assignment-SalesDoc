@@ -22,6 +22,12 @@ export function sessionView(session) {
     agentId: session.agentId,
     status: session.status,
     concurrency: CONCURRENCY,
+
+    // The server's clock. A call's elapsed time is the gap between two server
+    // timestamps, so the UI must not measure it against the viewer's clock -
+    // any skew makes the timer jump, stall, or disappear entirely.
+    now: Date.now(),
+
     createdAt: session.createdAt,
     startedAt: session.startedAt,
     endedAt: session.endedAt,
