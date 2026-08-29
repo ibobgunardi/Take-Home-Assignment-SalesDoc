@@ -72,9 +72,12 @@ scheduled first, not last.**
 
 1. **Project skeleton** — `server/` + `client/`, root scripts so `npm install`
    and `npm run dev` work. Verify it starts *before* building on it.
-2. **Deploy the walking skeleton** (D-15, R-108a/b) — get *anything* on the free
-   host now, from one process serving API + built bundle. Deployment breaks at
-   hour 2 or hour 23; choose hour 2.
+2. **Deploy the walking skeleton** (D-15, D-19, R-108a/b) — get *anything*
+   reachable over HTTPS now, from one process serving API + built bundle.
+   Deployment breaks at hour 2 or hour 23; choose hour 2. On the VPS:
+   `ssh salesdoc` → install Node, `rsync` the build, run it under systemd, put
+   Caddy in front with an `<ip>.sslip.io` hostname. **Never read, print, or
+   commit the credential file** — the SSH alias carries everything.
 3. **Domain models + stores + seed** (R-00…R-12) — exact field names and enums.
 4. **Call simulator seam** (D-06, R-35) — interface, seeded impl, scripted impl.
    Build this **before** the dialer; it is what makes the dialer testable.

@@ -28,6 +28,18 @@ Thumbs.db
 .idea/
 *.swp
 
+# ---- credentials that must never be committed ----
+# Deploy secrets live OUTSIDE this repo (~/.ssh/config, Downloads/hanif.txt).
+# These patterns are a backstop in case one is ever copied in by accident.
+hanif.txt
+hanif.txt.txt
+*secret*
+*credential*
+*password*
+id_rsa*
+id_ed25519*
+known_hosts
+
 # ---- privacy ----
 # emailRaw.txt is the recruiter's email and contains a personal mobile number.
 # This repo is shared with the reviewer, so the number is not published.

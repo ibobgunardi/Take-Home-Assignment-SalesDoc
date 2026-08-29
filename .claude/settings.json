@@ -46,7 +46,14 @@
       "PowerShell(Invoke-RestMethod:*)",
       "PowerShell(Invoke-WebRequest:*)",
       "PowerShell(Test-Path:*)",
-      "PowerShell(Get-Content:*)"
+      "PowerShell(Get-Content:*)",
+      "Bash(ssh:*)",
+      "Bash(scp:*)",
+      "Bash(rsync:*)",
+      "PowerShell(ssh:*)",
+      "PowerShell(scp:*)",
+      "PowerShell(rsync:*)",
+      "PowerShell(ssh-keygen:*)"
     ]
   }
 }

@@ -626,15 +626,15 @@ in-memory permission (D-10) sits awkwardly with free hosting.
   Fastify API *and* the built React bundle from one process (Render, Railway,
   Fly.io free tiers all do this). A split client/API deployment doubles the
   config surface and adds CORS and env-var wiring for no reviewer benefit.
-- **Cold starts are a known, disclosed limitation.** Free tiers idle out, and
-  D-10 keeps all state in memory, so **an idle instance loses sessions, calls,
-  and CRM data**. Mitigations, in order:
+- **A process restart still clears state.** The VPS does not idle out (D-19), so
+  there are no cold starts during a review — but a redeploy or crash restarts
+  the process, and D-10 keeps everything in memory. Mitigations, in order:
   1. Seed leads on boot, so a cold instance is always immediately usable.
   2. The frontend handles a `404` on `GET /sessions/:id` by returning to
      Screen 1 with a clear "session expired, please create a new one" message -
      never a crash or a blank screen.
   3. `README.md` and `NOTES.md` state plainly that state is in-memory and a
-     cold start clears it, and that a fresh session takes seconds to create.
+     restart clears it, and that a fresh session takes seconds to create.
 
 **Why reasonable.** The deployed URL is one of only two things a reviewer
 literally cannot proceed without, so it is scheduled first rather than last.
@@ -642,10 +642,9 @@ Persisting to a database to survive cold starts would contradict D-10 and the
 spec's explicit in-memory permission; handling the expiry gracefully and saying
 so is the honest, cheaper answer.
 
-**Tradeoff.** A reviewer returning after an idle period must create a new
-session. That is acceptable **only because it is disclosed and handled**; an
-unexplained blank screen would not be. If it proves annoying in practice, a
-keep-alive ping is a smaller change than adding persistence.
+**Tradeoff.** A reviewer whose session predates a redeploy must create a new
+one. Acceptable **only because it is disclosed and handled**; an unexplained
+blank screen would not be. Deploy before sharing the URL, not after.
 
 ---
 
@@ -700,7 +699,7 @@ stack. The host was likewise only a parenthetical.
 | Backend | **Express** |
 | Frontend | **React + Vite** |
 | Tests | **Vitest** (both sides) |
-| Host | **Render free web service** — *verify the free tier still exists before committing* |
+| Host | **Own VPS** (SSH alias `salesdoc`), Caddy + `sslip.io` for TLS |
 
 - **Express over Fastify:** more reviewers read Express fluently, and nothing
   here needs Fastify's throughput or schema layer.
@@ -718,12 +717,29 @@ stack. The host was likewise only a parenthetical.
   router matched** — otherwise a catch-all at root swallows the graded
   endpoints. No CORS in production; CORS only for the Vite dev server (R-69).
 
-**Free-tier caution.** Free hosting terms change. **Before spending an hour on
-deployment, confirm the chosen host still offers a free tier that can run a Node
-web service.** If Render has changed, Fly.io and Railway are the fallbacks;
-the D-15 requirements (one process, seed on boot, cold-start disclosure) are
-host-agnostic, so switching costs configuration only. Record whichever host was
-actually used in `README.md`.
+**Deploy target.** A self-managed VPS, reached through the SSH host alias
+`salesdoc` defined in the developer's `~/.ssh/config`. **No credential appears
+in this repo, in a prompt, or in a command line** — the alias carries the host,
+user, and key path. Never read, print, or commit the credential file.
+
+TLS via **Caddy** reverse-proxying to the Node process, with a hostname from
+**`sslip.io`** (`<ip>.sslip.io` resolves to that IP), so Let's Encrypt issues a
+real certificate without owning a domain:
+
+```text
+<ip>.sslip.io {
+    reverse_proxy localhost:3000
+}
+```
+
+Node runs under **systemd** so it restarts on failure and survives logout.
+Record the final URL in `README.md`.
+
+**Why a VPS over a free tier.** A real long-running process means no cold
+starts, `setInterval` (D-16) actually runs, and in-memory state (D-10) survives
+a whole review session. Serverless hosts such as Vercel's free tier are
+**disqualified**: functions freeze after responding, so the tick never fires and
+the dialer never advances.
 
 **Tradeoff.** Committing early means a reviewer who prefers Fastify or Next sees
 neither. The spec explicitly allows either, so this is a permitted choice, not a
