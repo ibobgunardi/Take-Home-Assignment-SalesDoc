@@ -296,7 +296,15 @@ function promoteNextLead(session, now) {
   plans.set(call.id, plan);
   callStore.put(call);
   session.activeCallIds.push(call.id);
-  session.lineSlots[session.lineSlots.indexOf(null)] = call.id;
+
+  // The caller is inside the bounded promotion loop, so a free slot must
+  // exist. Fail loudly if it does not: `lineSlots[-1] = id` would silently set
+  // a "-1" property and leave the two out of step instead of crashing.
+  const freeSlot = session.lineSlots.indexOf(null);
+  if (freeSlot === -1) {
+    throw new Error(`no free line slot for ${call.id} - lineSlots is out of step with activeCallIds`);
+  }
+  session.lineSlots[freeSlot] = call.id;
   session.callIds.push(call.id);
   session.metrics.attempted += 1;
 

@@ -66,7 +66,7 @@
 | R-24 | Two calls ending in the **same tick** promote exactly two, never three | T1-P1 | `services/dialer` | unit: near-simultaneous terminal | — | Tested |
 | R-25 | Queue exhausted → no promotion, no crash, session ends `STOPPED` | D-02 | `services/dialer` | unit | run a 3-lead session to completion | Tested |
 | R-26 | Fewer leads than lines (1 selected) → exactly 1 active call | T1-P1 | `services/dialer` | unit | UI shows 1 line busy, 1 idle | Tested |
-| R-27 | `POST /sessions` with 0 leads rejected `400` | D-11 | `routes/sessions` | unit | button disabled in UI | Todo |
+| R-27 | `POST /sessions` with 0 leads rejected `400` | D-11 | `routes/sessions` | unit | button disabled in UI | Verified |
 | R-28 | First **answered** call (`DIALING`→`LIVE`) sets `winnerCallId` for that round; it takes `status=CONNECTED` later, when it ends | T1-P1, D-02, D-03 | `services/dialer` | unit: winner set at answer, not at terminal | Screen 2 winner panel | Tested |
 | R-29 | On a winner, every other in-flight call (all `DIALING`) becomes `CANCELED_BY_DIALER`; a same-tick answer loser never reaches `LIVE` | D-02, D-03 | `services/dialer` | unit: other line cancelled; same-tick loser ends `CANCELED_BY_DIALER`, not `CONNECTED` | observe in UI | Tested |
 | R-30 | No new leads promoted while the winner is `LIVE` | D-02 | `services/dialer` | unit | — | Tested |
@@ -74,7 +74,7 @@
 | R-31a | Session reaches `STOPPED` only when queue exhausted **and** no active calls (or explicit stop) — never merely because a call connected | D-02 | `services/dialer` | unit: 5 leads with a connect still dials all 5 | full run in UI | Tested |
 | R-31b | Every selected lead is eventually dialed unless the agent stops early | D-02 | `services/dialer` | unit: calls created == leads selected | completed-calls list | Tested |
 | R-32 | Stop terminates all in-flight calls and promotes nothing; `DIALING`->`CANCELED_BY_DIALER`, `LIVE`->`CONNECTED` | D-11, D-03 | `services/dialer` | unit: 0 active after stop; stop during a LIVE winner yields `CONNECTED` | Stop button in UI | Tested |
-| R-33 | Stop is idempotent; start on a `RUNNING` session is a no-op | D-11 | `routes/sessions` | unit: double stop / double start | — | Todo |
+| R-33 | Stop is idempotent; start on a `RUNNING` session is a no-op | D-11 | `routes/sessions` | unit: double stop / double start | — | Tested |
 | R-34 | Metrics map per D-04 and satisfy `connected+failed+canceled == attempted` at rest | D-04 | `services/dialer` | unit: invariant asserted after each scenario | UI metrics vs call list | Tested |
 | R-35 | Call simulation is deterministic and injectable; no `Math.random`/bare `setTimeout` in domain logic | D-06 | `services/simulator` | scripted simulator used by all dialer tests | `grep -rn "Math.random"` in domain | Tested |
 | R-36 | Created-but-unstarted session is `STOPPED` with `startedAt === null`; start is legal only then | D-14 | `services/dialer` | unit: 3 lifecycle states distinguishable | — | Tested |
@@ -141,20 +141,20 @@
 
 | ID | Requirement | Source | Implementation Area | Test | Verification | Status |
 | -- | ----------- | ------ | ------------------- | ---- | ------------ | ------ |
-| R-100 | `npm install` works from a clean clone | T1-Sub | root | — | **actually run in a clean dir** | Impl |
+| R-100 | `npm install` works from a clean clone | T1-Sub | root | — | **actually run in a clean dir** | Verified |
 | R-101 | `npm run dev` (or documented separate client/server commands) starts everything | T1-Sub | root scripts | — | **actually run** | Verified |
-| R-102 | README with setup instructions, run commands, and how to demo the flow | T1-Sub | `README.md` | — | follow it verbatim | Todo |
-| R-103 | `NOTES.md`: tradeoffs | T1-Sub | `NOTES.md` | — | reviewed | Todo |
-| R-104 | `NOTES.md`: what you would do next | T1-Sub | `NOTES.md` | — | reviewed | Todo |
-| R-105 | `NOTES.md`: how AI tools were used | T1-Sub | `NOTES.md` | — | reviewed | Todo |
-| R-106 | `NOTES.md`: **what you verified** — factual, labelled, no fabrication | T1-Sub | `NOTES.md` | — | every claim traceable to a run | Todo |
+| R-102 | README with setup instructions, run commands, and how to demo the flow | T1-Sub | `README.md` | — | follow it verbatim | Verified |
+| R-103 | `NOTES.md`: tradeoffs | T1-Sub | `NOTES.md` | — | reviewed | Verified |
+| R-104 | `NOTES.md`: what you would do next | T1-Sub | `NOTES.md` | — | reviewed | Verified |
+| R-105 | `NOTES.md`: how AI tools were used | T1-Sub | `NOTES.md` | — | reviewed | Verified |
+| R-106 | `NOTES.md`: **what you verified** — factual, labelled, no fabrication | T1-Sub | `NOTES.md` | — | every claim traceable to a run | Verified |
 | R-107 | Test suite runs green via a documented command | D-06 | `package.json` | — | **actually run, output observed** | Verified |
 | R-108 | Deployed to a free host; URL reachable | T1-Sub, D-15 | deployment | — | **open the URL and use it** | Verified |
 | R-108a | **Walking skeleton deployed on day one**, before feature work | D-15 | deployment | — | URL served something on day 1 | Verified |
 | R-108b | Single host serves API + built React bundle from one process | D-15 | deployment | — | one URL, no CORS in prod | Verified |
 | R-108c | Leads seeded on boot, so a cold instance is immediately usable | D-15 | `seed` | unit | restart the host, open the URL | Tested |
-| R-108d | README + NOTES state that state is in-memory and a restart clears it | D-15 | docs | — | reviewed | Impl |
-| R-109 | Git repo pushed and link available | T1-Sub | repo | — | open the link | Todo |
+| R-108d | README + NOTES state that state is in-memory and a restart clears it | D-15 | docs | — | reviewed | Verified |
+| R-109 | Git repo pushed and link available | T1-Sub | repo | — | open the link | Verified |
 | R-110 | Email URL + repo link to `intern1.aisalesdr@gmail.com` and `ellee@aisalesdr.co` | T1-Sub | submission | — | **user sends this — Claude must not send email** | Todo |
 
 ---
