@@ -1,0 +1,38 @@
+# ---- dependencies & build output ----
+node_modules/
+dist/
+build/
+.vite/
+coverage/
+*.tsbuildinfo
+
+# ---- secrets / environment ----
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+credentials.json
+secrets.json
+
+# ---- logs & scratch ----
+*.log
+npm-debug.log*
+.cache/
+tmp/
+.DS_Store
+Thumbs.db
+
+# ---- editor ----
+.idea/
+*.swp
+
+# ---- privacy ----
+# emailRaw.txt is the recruiter's email and contains a personal mobile number.
+# This repo is shared with the reviewer, so the number is not published.
+# The file stays on disk locally; the config still reads it.
+emailRaw.txt
+
+# ---- agent scratch ----
+.codex/
