@@ -46,7 +46,7 @@
 | R-02 | `Lead.crmExternalId` optional, absent until first CRM sync | T1-P1, D-01 | `models/lead` | unit: starts undefined, set after sync | inspect lead after a call | Tested |
 | R-03 | `Call` has `id, leadId, sessionId, status, startedAt, endedAt, providerCallId` | T1-P1 | `models/call` | unit: shape on create | session payload shows fields | Tested |
 | R-04 | `Call.status` is exactly `CONNECTED \| NO_ANSWER \| BUSY \| VOICEMAIL \| CANCELED_BY_DIALER` — no invented values | T1-P1, D-03 | `models/call` | unit: enum has exactly 5 values | grep for stray statuses | Tested |
-| R-05 | Call `phase` (`DIALING\|LIVE\|ENDED`) is separate from `status`; `status`+`endedAt` set atomically on ENDED only | D-03 | `services/dialer` | unit: no call has status without endedAt; no `DIALING`/`LIVE` in `Call_Status` | UI shows Dialing / Connected-live | Impl |
+| R-05 | Call `phase` (`DIALING\|LIVE\|ENDED`) is separate from `status`; `status`+`endedAt` set atomically on ENDED only | D-03 | `services/dialer` | unit: no call has status without endedAt; no `DIALING`/`LIVE` in `Call_Status` | UI shows Dialing / Connected-live | Tested |
 | R-06 | `providerCallId` populated as a string by the simulated provider | T1-P1 | `services/simulator` | unit: non-empty string, unique | session payload | Tested |
 | R-07 | `DialerSession` has `id, agentId, leadQueue, activeCallIds, winnerCallId, status, metrics` | T1-P1 | `models/session` | unit: shape on create | `GET /sessions/:id` | Tested |
 | R-08 | `concurrency` fixed to 2 and not user-configurable | T1-P1 | `models/session` | unit: constant is 2 | no API accepts concurrency | Tested |
@@ -59,30 +59,30 @@
 
 | ID | Requirement | Source | Implementation Area | Test | Verification | Status |
 | -- | ----------- | ------ | ------------------- | ---- | ------------ | ------ |
-| **R-20** | **`activeCallIds.length <= 2` at every observable moment — never violated on any path** | **T1-P1** | `services/dialer` | **dedicated concurrency suite (R-22, R-24, R-26, R-30, R-32)** | assert on every poll of a live session | **Todo** |
-| R-21 | Session created from selected leads; `leadQueue` preserves the selection | T1-P3, D-08 | `services/dialer` | unit | `POST /sessions` response | Impl |
-| R-22 | Start dials up to 2 leads immediately; not 1, not 3 | T1-P1 | `services/dialer` | unit: 5 leads → exactly 2 active | Screen 2 shows 2 lines | Todo |
-| R-23 | Terminal call frees its line and the next queued lead is promoted | T1-P1 | `services/dialer` | unit: queue advances by one | observe line swap in UI | Todo |
-| R-24 | Two calls ending in the **same tick** promote exactly two, never three | T1-P1 | `services/dialer` | unit: near-simultaneous terminal | — | Todo |
-| R-25 | Queue exhausted → no promotion, no crash, session ends `STOPPED` | D-02 | `services/dialer` | unit | run a 3-lead session to completion | Todo |
-| R-26 | Fewer leads than lines (1 selected) → exactly 1 active call | T1-P1 | `services/dialer` | unit | UI shows 1 line busy, 1 idle | Todo |
+| **R-20** | **`activeCallIds.length <= 2` at every observable moment — never violated on any path** | **T1-P1** | `services/dialer` | **dedicated concurrency suite (R-22, R-24, R-26, R-30, R-32)** | assert on every poll of a live session | Tested |
+| R-21 | Session created from selected leads; `leadQueue` preserves the selection | T1-P3, D-08 | `services/dialer` | unit | `POST /sessions` response | Tested |
+| R-22 | Start dials up to 2 leads immediately; not 1, not 3 | T1-P1 | `services/dialer` | unit: 5 leads → exactly 2 active | Screen 2 shows 2 lines | Tested |
+| R-23 | Terminal call frees its line and the next queued lead is promoted | T1-P1 | `services/dialer` | unit: queue advances by one | observe line swap in UI | Tested |
+| R-24 | Two calls ending in the **same tick** promote exactly two, never three | T1-P1 | `services/dialer` | unit: near-simultaneous terminal | — | Tested |
+| R-25 | Queue exhausted → no promotion, no crash, session ends `STOPPED` | D-02 | `services/dialer` | unit | run a 3-lead session to completion | Tested |
+| R-26 | Fewer leads than lines (1 selected) → exactly 1 active call | T1-P1 | `services/dialer` | unit | UI shows 1 line busy, 1 idle | Tested |
 | R-27 | `POST /sessions` with 0 leads rejected `400` | D-11 | `routes/sessions` | unit | button disabled in UI | Todo |
-| R-28 | First **answered** call (`DIALING`→`LIVE`) sets `winnerCallId` for that round; it takes `status=CONNECTED` later, when it ends | T1-P1, D-02, D-03 | `services/dialer` | unit: winner set at answer, not at terminal | Screen 2 winner panel | Todo |
-| R-29 | On a winner, every other in-flight call (all `DIALING`) becomes `CANCELED_BY_DIALER`; a same-tick answer loser never reaches `LIVE` | D-02, D-03 | `services/dialer` | unit: other line cancelled; same-tick loser ends `CANCELED_BY_DIALER`, not `CONNECTED` | observe in UI | Todo |
-| R-30 | No new leads promoted while the winner is `LIVE` | D-02 | `services/dialer` | unit | — | Todo |
-| R-31 | Winner call ending → `status=CONNECTED`, CRM sync, next round promoted; **`winnerCallId` keeps naming that call** (D-18) | D-02, D-18 | `services/dialer` | unit: dialing resumes after a connect; winner not cleared | observe a 2nd round in UI | Todo |
-| R-31a | Session reaches `STOPPED` only when queue exhausted **and** no active calls (or explicit stop) — never merely because a call connected | D-02 | `services/dialer` | unit: 5 leads with a connect still dials all 5 | full run in UI | Todo |
-| R-31b | Every selected lead is eventually dialed unless the agent stops early | D-02 | `services/dialer` | unit: calls created == leads selected | completed-calls list | Todo |
-| R-32 | Stop terminates all in-flight calls and promotes nothing; `DIALING`->`CANCELED_BY_DIALER`, `LIVE`->`CONNECTED` | D-11, D-03 | `services/dialer` | unit: 0 active after stop; stop during a LIVE winner yields `CONNECTED` | Stop button in UI | Todo |
+| R-28 | First **answered** call (`DIALING`→`LIVE`) sets `winnerCallId` for that round; it takes `status=CONNECTED` later, when it ends | T1-P1, D-02, D-03 | `services/dialer` | unit: winner set at answer, not at terminal | Screen 2 winner panel | Tested |
+| R-29 | On a winner, every other in-flight call (all `DIALING`) becomes `CANCELED_BY_DIALER`; a same-tick answer loser never reaches `LIVE` | D-02, D-03 | `services/dialer` | unit: other line cancelled; same-tick loser ends `CANCELED_BY_DIALER`, not `CONNECTED` | observe in UI | Tested |
+| R-30 | No new leads promoted while the winner is `LIVE` | D-02 | `services/dialer` | unit | — | Tested |
+| R-31 | Winner call ending → `status=CONNECTED`, CRM sync, next round promoted; **`winnerCallId` keeps naming that call** (D-18) | D-02, D-18 | `services/dialer` | unit: dialing resumes after a connect; winner not cleared | observe a 2nd round in UI | Tested |
+| R-31a | Session reaches `STOPPED` only when queue exhausted **and** no active calls (or explicit stop) — never merely because a call connected | D-02 | `services/dialer` | unit: 5 leads with a connect still dials all 5 | full run in UI | Tested |
+| R-31b | Every selected lead is eventually dialed unless the agent stops early | D-02 | `services/dialer` | unit: calls created == leads selected | completed-calls list | Tested |
+| R-32 | Stop terminates all in-flight calls and promotes nothing; `DIALING`->`CANCELED_BY_DIALER`, `LIVE`->`CONNECTED` | D-11, D-03 | `services/dialer` | unit: 0 active after stop; stop during a LIVE winner yields `CONNECTED` | Stop button in UI | Tested |
 | R-33 | Stop is idempotent; start on a `RUNNING` session is a no-op | D-11 | `routes/sessions` | unit: double stop / double start | — | Todo |
-| R-34 | Metrics map per D-04 and satisfy `connected+failed+canceled == attempted` at rest | D-04 | `services/dialer` | unit: invariant asserted after each scenario | UI metrics vs call list | Todo |
-| R-35 | Call simulation is deterministic and injectable; no `Math.random`/bare `setTimeout` in domain logic | D-06 | `services/simulator` | scripted simulator used by all dialer tests | `grep -rn "Math.random"` in domain | Impl |
-| R-36 | Created-but-unstarted session is `STOPPED` with `startedAt === null`; start is legal only then | D-14 | `services/dialer` | unit: 3 lifecycle states distinguishable | — | Todo |
+| R-34 | Metrics map per D-04 and satisfy `connected+failed+canceled == attempted` at rest | D-04 | `services/dialer` | unit: invariant asserted after each scenario | UI metrics vs call list | Tested |
+| R-35 | Call simulation is deterministic and injectable; no `Math.random`/bare `setTimeout` in domain logic | D-06 | `services/simulator` | scripted simulator used by all dialer tests | `grep -rn "Math.random"` in domain | Tested |
+| R-36 | Created-but-unstarted session is `STOPPED` with `startedAt === null`; start is legal only then | D-14 | `services/dialer` | unit: 3 lifecycle states distinguishable | — | Tested |
 | R-37 | Start on a **finished** session → `409`; there is no restart | D-14 | `routes/sessions` | unit | UI offers "New session", not Start | Todo |
-| R-38 | `agentId` supplied by a seeded hardcoded demo agent (`agent-1`); server defaults it when absent | D-14 | `seed`, `routes/sessions` | unit: default applied | `POST /sessions` without agentId works | Todo |
-| R-39 | One `setInterval` per `RUNNING` session at `TICK_MS = 250` calling only `advance()`; cleared on stop; no per-call timers | D-16 | `services/dialer` | unit: interval cleared on stop | no timer leak after session ends | Todo |
-| R-39a | Tests drive `advance()` directly with a fake clock; the interval is never started in tests | D-16 | tests | the suite itself | — | Todo |
-| R-39b | Simulator uses the D-17 ring/talk durations and outcome mix | D-17 | `services/simulator` | unit: draws within bounds | a 5-lead demo runs ~60–90s and reaches `STOPPED`; **1 connect is a normal run, not a defect** | Impl |
+| R-38 | `agentId` supplied by a seeded hardcoded demo agent (`agent-1`); server defaults it when absent | D-14 | `seed`, `routes/sessions` | unit: default applied | `POST /sessions` without agentId works | Tested |
+| R-39 | One `setInterval` per `RUNNING` session at `TICK_MS = 250` calling only `advance()`; cleared on stop; no per-call timers | D-16 | `services/dialer` | unit: interval cleared on stop | no timer leak after session ends | Tested |
+| R-39a | Tests drive `advance()` directly with a fake clock; the interval is never started in tests | D-16 | tests | the suite itself | — | Tested |
+| R-39b | Simulator uses the D-17 ring/talk durations and outcome mix | D-17 | `services/simulator` | unit: draws within bounds | a 5-lead demo runs ~60–90s and reaches `STOPPED`; **1 connect is a normal run, not a defect** | Tested |
 
 ### 1.3 CRM integration — **idempotency is critical**
 
