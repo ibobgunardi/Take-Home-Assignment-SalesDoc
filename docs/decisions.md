@@ -62,8 +62,8 @@ to a **round**, not to the session. The winner is decided at the **answer**
 moment (D-03), not at the terminal moment:
 
 1. A `RUNNING` session dials up to 2 leads concurrently.
-2. The **first** call to be **answered** (phase `DIALING` -> `LIVE`) becomes
-   `winnerCallId`.
+2. The **first** call answered while no other call is `LIVE` becomes
+   `winnerCallId`, replacing whatever it held.
 3. At that instant every other in-flight call is terminated
    `CANCELED_BY_DIALER` - one agent can hold one conversation. This includes a
    call that would have answered in the **same tick**: it loses the race, never
@@ -90,9 +90,8 @@ lead is eventually dialed unless the agent stops the session early.
   are counters. Under a session-sticky winner, `connected` could only ever be
   `0` or `1` - there would be no reason to make it a counter. Four counters only
   make sense if a session can accumulate several of each.
-- `winnerCallId` being **nullable** is natural under this reading (null between
-  rounds) and nearly pointless under the sticky one, where it would be null only
-  before the first answer.
+- `winnerCallId` being **nullable** is natural under this reading - `null` until
+  the first connect, thereafter naming the most recent one (D-18).
 - It is how real power dialers behave: dial, connect, talk, wrap, dial again.
 
 **Why the sticky reading was rejected.** It required a hand-picked simulator
@@ -102,10 +101,10 @@ wrong decision, not a demo problem. It also capped `connected` at 1, and left
 selected leads permanently undialed with no status to explain why.
 
 **Tradeoff.** `winnerCallId` changes over the life of a session, so a reviewer
-inspecting it at two different moments sees two different values. That is
-inherent to a nullable "current call" field and is visible in the UI, which
-shows the winner only while a call is live. If a reviewer intended one winner
-per session, the change is confined to steps 5-6.
+inspecting it at two different moments sees two different values. It names the
+most recent connect and is never cleared (D-18), so the UI panel stays populated
+once anything has connected - label it "Last connected" after that call ends. If
+a reviewer intended one winner per session, the change is confined to steps 5-6.
 
 **Additive fields allowed.** A non-spec `completionReason`
 (`QUEUE_EXHAUSTED | STOPPED_BY_AGENT`) may be added for UI clarity.
@@ -139,10 +138,13 @@ status: null while DIALING or LIVE
 - A call is in flight when `phase !== ENDED` (equivalently `endedAt === null`).
 - **Terminal** — the trigger for CRM sync and metrics — means entering `ENDED`.
 - `answeredAt` may be added alongside `startedAt`/`endedAt` for the UI.
-- **At most one call is ever `LIVE`, and it is always `winnerCallId`.** A call
-  that would answer while a winner already exists never enters `LIVE` — it is
-  cancelled from `DIALING`. So `LIVE` implies winner, and a `LIVE` call can only
-  end as `CONNECTED` (D-11).
+- **At most one call is `LIVE` at a time, and while one is, it is
+  `winnerCallId`.** A call that would answer while **another call is already
+  `LIVE`** never enters `LIVE` — it is cancelled from `DIALING`. (The test is
+  "is a call `LIVE`", *not* "is `winnerCallId` set" — the latter stays set
+  forever after the first connect, D-18.) A `LIVE` call can only end as
+  `CONNECTED` (D-11). The converse does not hold: `winnerCallId` may name an
+  `ENDED` call.
 
 Mapping to outcomes:
 
@@ -323,15 +325,19 @@ advance(session):                       # called once per tick - see D-16
   1. answering = in-flight calls whose ANSWER is due this tick
                  (deterministic order - never rely on Map/Set iteration luck)
 
-  2. RESOLVE THE RACE - at most one call may ever enter LIVE:
-        if winnerCallId is null and answering is non-empty:
-              w = answering[0]
-              w.phase = LIVE ; w.answeredAt = now ; winnerCallId = w.id
-        every other call in `answering` stays DIALING - it lost the race
-        (if a winner already exists, NO call in `answering` enters LIVE)
+  newWinner = null
 
-  3. if winnerCallId is set:
-        mark every other in-flight call (all still DIALING) for termination
+  2. RESOLVE THE RACE - at most one call may be LIVE at a time:
+        if NO call has phase == LIVE and answering is non-empty:
+              w = answering[0]
+              w.phase = LIVE ; w.answeredAt = now
+              winnerCallId = w.id        # REPLACES any previous winner (D-18)
+              newWinner = w
+        every other call in `answering` stays DIALING - it lost the race
+        (if a call is already LIVE, NO call in `answering` enters LIVE)
+
+  3. if newWinner is not null:
+        mark every OTHER in-flight call (all still DIALING) for termination
         as CANCELED_BY_DIALER
 
   4. apply due TERMINAL transitions   (phase -> ENDED,
@@ -355,6 +361,18 @@ Promotion is a `while` loop bounded by `activeCallIds.length < 2`, so the
 ceiling is enforced by the loop condition itself rather than by a check that
 could be bypassed. Steps 2-3 run before step 4 so a call that loses the race is
 terminated in the same tick, not one tick late.
+
+**Steps 2, 3 and 7 must never be gated on `winnerCallId`.** Under D-18 it is
+permanently non-null after the first connect, so gating on it would stop any
+later call becoming `LIVE` (step 2) and would cancel every newly promoted call
+on sight (step 3) - the session would burn the rest of the queue to
+`CANCELED_BY_DIALER` while still looking plausible. The three gates are:
+
+| Step | Gate | Question it asks |
+| --- | --- | --- |
+| 2 | no call has `phase == LIVE` | is the agent free to take a call? |
+| 3 | `newWinner` was set *this tick* | did someone just win a race? |
+| 7 | no call has `phase == LIVE` | is the agent free for a new round? |
 
 **Why reasonable.** Node runs one JS callback at a time. If no transition awaits
 mid-update, no interleaving can produce three active calls. This makes the
